@@ -1,0 +1,12 @@
+# Never let a real secret/identity file in, even by accident.
+.zshrc
+.gitconfig
+*.local
+*.local.*
+*.bak-*
+.env
+.env.*
+secrets*
+*.pem
+*.key
+.DS_Store

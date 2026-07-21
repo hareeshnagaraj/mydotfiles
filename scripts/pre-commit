@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# pre-commit — block any commit that would introduce a secret. Install via `make hook`.
+set -euo pipefail
+REPO="$(git rev-parse --show-toplevel)"
+# Scan staged files only.
+mapfile -t staged < <(git diff --cached --name-only --diff-filter=ACM)
+[ ${#staged[@]} -eq 0 ] && exit 0
+"$REPO/scripts/scrub.sh" scan "${staged[@]}"

@@ -1,0 +1,13 @@
+# mydotfiles — git config template. Copy to ~/.gitconfig and fill in your identity.
+[user]
+	name = <<YOUR NAME>>
+	email = <<you@example.com>>
+[core]
+	excludesfile = ~/.gitignore_global
+# Use gh as the GitHub credential helper (run `gh auth login` once).
+[credential "https://github.com"]
+	helper =
+	helper = !gh auth git-credential
+[credential "https://gist.github.com"]
+	helper =
+	helper = !gh auth git-credential

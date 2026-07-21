@@ -1,0 +1,16 @@
+" Minimal readable defaults
+syntax on
+set nocompatible
+set wrap linebreak breakindent
+set number
+set scrolloff=4
+set incsearch hlsearch ignorecase smartcase
+set backspace=indent,eol,start
+
+" Move by visual line when wrapped
+nnoremap j gj
+nnoremap k gk
+
+" Markdown: hide syntax clutter (**bold** renders bold, links show label only)
+autocmd FileType markdown setlocal conceallevel=2 textwidth=0 colorcolumn=0
+let g:markdown_folding = 0

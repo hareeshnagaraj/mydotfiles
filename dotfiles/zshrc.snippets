@@ -1,0 +1,51 @@
+# mydotfiles — zshrc snippets. Append the parts you want to ~/.zshrc.
+# NOTE: this is a curated, secrets-free subset of my real ~/.zshrc. Anything that
+# was a token or private host has been replaced with a <<PLACEHOLDER>> or dropped.
+
+# --- aliases ---
+alias g="git"
+alias ll="ls -a -l"
+
+# --- prompt: agnoster theme + live git branch ---
+ZSH_THEME="agnoster"
+autoload -Uz vcs_info
+precmd() { vcs_info }
+zstyle ':vcs_info:git:*' formats '(%b)'
+setopt PROMPT_SUBST
+PROMPT='%F{blue}%~%f %F{yellow}${vcs_info_msg_0_}%f %# '
+
+# --- suggestions + syntax highlighting (brew installs) ---
+source $(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh 2>/dev/null
+source $(brew --prefix)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh 2>/dev/null
+
+# --- completions ---
+autoload -Uz compinit && compinit -C
+
+# --- THE non-obvious one: hand mouse-scroll to tmux for agent TUIs ---
+# Claude Code (and similar) use the alt-screen buffer and fight tmux for scroll,
+# corrupting the display. Inside tmux, let tmux own scroll entirely.
+[ -n "$TMUX" ] && export CLAUDE_CODE_DISABLE_MOUSE=1
+
+# --- tmux cheat sheet (prefix = Ctrl-a) ---
+# Sessions:   tmux new -s name | tmux ls | tmux attach -t name | prefix d (detach)
+# Windows:    prefix c (new) | prefix n/p (next/prev) | prefix 0-9 | prefix , (rename)
+# Panes:      prefix | / - (split) | prefix h j k l (move) | prefix H J K L (resize) | prefix z (zoom)
+# Copy mode:  prefix [ (enter) | v (select) | y (yank→clipboard) | prefix C-p (fzf clean copy)
+# Misc:       prefix r (reload) | prefix ? (all keybinds)
+
+# --- Optional: run Codex against a Venice-hosted model. Supply your OWN key. ---
+#   security add-generic-password -a "$USER" -s my-openrouter-key -w '<<YOUR_OPENROUTER_KEY>>'
+venicefable() {
+  local k; k="$(security find-generic-password -a "$USER" -s my-openrouter-key -w 2>/dev/null)"
+  [ -z "$k" ] && { print -u2 "venicefable: missing Keychain item my-openrouter-key"; return 1; }
+  OPENROUTER_API_KEY="$k" command codex \
+    -c 'model_provider="venice"' -c 'model="claude-fable-5"' \
+    -c 'model_providers.venice.name="Venice Fable"' \
+    -c 'model_providers.venice.base_url="https://api.venice.ai/api/v1"' \
+    -c 'model_providers.venice.env_key="OPENROUTER_API_KEY"' \
+    -c 'model_providers.venice.requires_openai_auth=true' "$@"
+}
+alias vfable=venicefable
+
+# --- Secrets belong in Keychain, never inline. Example pattern: ---
+#   export SOME_TOKEN="$(security find-generic-password -a "$USER" -s some-service -w)"

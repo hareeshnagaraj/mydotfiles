@@ -1,0 +1,5 @@
+# Global gitignore — personal patterns, not project-tracked
+CLAUDE.local.md
+.claude.local/
+
+**/.claude/settings.local.json
