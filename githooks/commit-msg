@@ -1,0 +1,54 @@
+#!/usr/bin/env sh
+# commit-msg — flag AI authorship-attribution trailers.
+#
+# MODES (~/.config/git/hooks/mode, or $AI_ATTRIBUTION_MODE, default "warn"):
+#   warn   report to stderr, ALLOW the commit   <- default, cannot break anything
+#   block  report and REJECT the commit
+#   off    do nothing
+#
+# It NEVER edits the message. A silent rewrite is a history-integrity failure:
+# the author never sees the mutation unless they re-read `git log -1` every
+# time. Reject-with-a-message is recoverable; silent edits are not.
+#
+# Escape hatch: GIT_ALLOW_AI_ATTRIBUTION=1 git commit ...
+#
+# The repo's own commit-msg hook runs FIRST and keeps full ownership of its
+# behavior. If that hook already strips trailers, the message is clean by the
+# time we look and we correctly stay silent.
+
+set -u
+_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+_msgfile="$1"
+
+# 1) Repo-local hook first. If it rejects, we reject with its code.
+"$_dir/_delegate.sh" commit-msg "$@" || exit $?
+
+# 2) Our check.
+[ "${GIT_ALLOW_AI_ATTRIBUTION:-}" = "1" ] && exit 0
+
+_mode="${AI_ATTRIBUTION_MODE:-}"
+if [ -z "$_mode" ] && [ -f "$_dir/mode" ]; then
+    _mode=$(tr -d '[:space:]' < "$_dir/mode")
+fi
+_mode="${_mode:-warn}"
+[ "$_mode" = "off" ] && exit 0
+
+. "$_dir/lib/ai-attribution.sh"
+
+_hits=$(ai_attribution_scan "$_msgfile") && exit 0
+
+echo "" >&2
+echo "  AI attribution found in commit message:" >&2
+printf '%s\n' "$_hits" | sed 's/^/      /' >&2
+echo "" >&2
+echo "  Work ships under your name. Remove the trailer and commit again." >&2
+
+if [ "$_mode" = "block" ]; then
+    echo "  (override once: GIT_ALLOW_AI_ATTRIBUTION=1 git commit ...)" >&2
+    echo "" >&2
+    exit 1
+fi
+
+echo "  [warn mode — commit allowed. Enforce: echo block > $_dir/mode]" >&2
+echo "" >&2
+exit 0

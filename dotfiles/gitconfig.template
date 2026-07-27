@@ -4,6 +4,8 @@
 	email = <<you@example.com>>
 [core]
 	excludesfile = ~/.gitignore_global
+	# Global hooks; see githooks/README.md. `make githooks` also sets this.
+	hooksPath = ~/.config/git/hooks
 # Use gh as the GitHub credential helper (run `gh auth login` once).
 [credential "https://github.com"]
 	helper =
