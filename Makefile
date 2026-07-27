@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: install sync scan hook sync-install sync-uninstall
+.PHONY: install sync scan hook sync-install sync-uninstall githooks githooks-sweep-install
 
 install:            ## symlink dotfiles into ~ (backs up existing)
 	./scripts/install.sh
@@ -19,3 +19,9 @@ sync-install:       ## load the weekly launchd agent that runs `make sync` (neve
 
 sync-uninstall:     ## unload the weekly launchd agent
 	./launchd/uninstall.sh
+
+githooks:           ## install global git hooks (AI-attribution guard, warn mode)
+	./githooks/install.sh
+
+githooks-sweep-install: ## load the weekly attribution drift sweep (read-only)
+	./launchd/install-attribution-sweep.sh

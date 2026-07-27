@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+# Pass-through to the repository's own prepare-commit-msg hook (see _delegate.sh).
+exec "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/_delegate.sh" prepare-commit-msg "$@"
