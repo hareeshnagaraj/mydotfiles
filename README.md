@@ -16,7 +16,8 @@ mydotfiles/
 │   ├── gitignore_global
 │   ├── zshrc.snippets       (curated safe subset — you append what you want)
 │   ├── gitconfig.template   (fill in your own name/email)
-│   └── config-tmux/git-status.sh
+│   ├── config-tmux/git-status.sh
+│   └── ghostty/             (terminal config + ayu-dark theme)
 ├── scripts/
 │   ├── install.sh       ← symlink dotfiles into ~ (backs up existing)
 │   ├── sync.sh          ← pull my current configs back in, scrubbed (the periodic update)
@@ -86,8 +87,8 @@ brew list --cask font-caskaydia-cove-nerd-font >/dev/null 2>&1 || brew install -
 for t in brew tmux nvim vim git gh fzf starship zsh; do command -v $t >/dev/null && echo "have $t" || echo "MISSING $t"; done
 ```
 
-I use **Ghostty** as the terminal (`brew install --cask ghostty`). iTerm2 or Terminal.app
-work too — you just need the Nerd Font set.
+I use **Ghostty** as the terminal (`brew install --cask ghostty`) — config + theme are in
+the Ghostty section below. iTerm2 or Terminal.app work too — you just need the Nerd Font set.
 
 ---
 
@@ -119,6 +120,53 @@ brew install --cask ghostty orbstack swiftbar
 - `fzf` powers the tmux copy-popup below — **install it if you take the tmux section.**
 - `zsh-autosuggestions` + `zsh-syntax-highlighting` make the shell feel alive (grey
   inline completions + colored validity). Wire-up is in the zsh section.
+
+---
+
+## Ghostty — the terminal itself
+
+**What & why:** Ghostty is a GPU-fast terminal whose entire configuration is one plain
+text file — no settings maze. Mine is two lines: the Nerd Font everything below assumes,
+and an Ayu Dark theme (a custom port; the palette matches how I like tmux/vim to sit).
+
+The whole config — `~/.config/ghostty/config` (on macOS Ghostty also reads
+`~/Library/Application Support/com.mitchellh.ghostty/config`; either works):
+
+```
+theme = ayu-dark
+font-family = CaskaydiaCove Nerd Font Mono
+```
+
+The theme is a file dropped at `~/.config/ghostty/themes/ayu-dark` — Ghostty picks up
+any file in that dir by name, so `theme = ayu-dark` just works:
+
+```
+background = #0b0e14
+foreground = #bfbdb6
+selection-background = #1b3a5b
+selection-foreground = #bfbdb6
+cursor-color = #bfbdb6
+cursor-text = #0b0e14
+palette = 0=#1e232b
+palette = 1=#ea6c73
+palette = 2=#7fd962
+palette = 3=#f9af4f
+palette = 4=#53bdfa
+palette = 5=#cda1fa
+palette = 6=#90e1c6
+palette = 7=#c7c7c7
+palette = 8=#686868
+palette = 9=#f07178
+palette = 10=#aad94c
+palette = 11=#ffb454
+palette = 12=#59c2ff
+palette = 13=#d2a6ff
+palette = 14=#95e6cb
+palette = 15=#ffffff
+```
+
+Both files live in `dotfiles/ghostty/` and are linked by `install.sh` / re-absorbed by
+`sync.sh`. Reload a running Ghostty with **Cmd+Shift+,** — no restart needed.
 
 ---
 
@@ -473,10 +521,10 @@ A **skill** is just a markdown file with a trigger phrase + a procedure. Any age
 - **gstack** — an open skill suite (`/ship`, `/land-and-deploy`, `/review`,
   `/investigate`, `/qa`, `/design-review`, `/spar`, `/careful`, `/freeze`, …). Installs
   into both `~/.claude/skills/` and `~/.codex/skills/`; `/gstack-upgrade` keeps it current.
-- **My gbrain-published pack** — the 19 curated skills below, served from the brain so
+- **My gbrain-published pack** — the 23 curated skills below, served from the brain so
   every tool/machine shares them. These are the ones I actually reach for.
 
-**The 19 I keep published (name → what it does → when it fires):**
+**The 23 I keep published (name → what it does → when it fires):**
 
 *Orchestration & delegation*
 | Skill | Does | Fires on |
@@ -487,6 +535,7 @@ A **skill** is just a markdown file with a trigger phrase + a procedure. Any age
 | `grok-run-output` | How to present Grok bridge output back verbatim | (helper) |
 | `factory` | One prompt → full vertical slice: 10 scoped agents, 3 human checkpoints, self-loops on failure | "factory", "ship feature end-to-end" |
 | `goal-prep` | Structured `/goal` intake for broad/stalled/vague work — Scout/Judge/Worker roles, rolling board | long-running or stuck work |
+| `conserve-claude` | Claude stays orchestrator/reviewer; heavy authoring + grunt work route to codex/grok subagents | "conserve claude", "don't burn Claude on this" |
 
 *Review & quality*
 | Skill | Does | Fires on |
@@ -494,6 +543,7 @@ A **skill** is just a markdown file with a trigger phrase + a procedure. Any age
 | `thermo-nuclear-code-quality-review` | Extremely strict maintainability audit — abstraction quality, giant files, spaghetti conditionals | "thermonuclear review", harsh audit |
 | `tavisi-audit` | Domain-specific audit/proof-validation (Tavisi-only, but a template for invariant-driven review) | changes touching custody/proof invariants |
 | `explain-diff-html` | Rich HTML explanation of a diff/branch/PR | "explain this change" |
+| `deploy-preflight` | Proves a web app builds from a *clean clone* and every env var/secret it references exists on the deploy target | before calling a frontend "done", "will this build on Vercel?" |
 
 *Thinking & teaching*
 | Skill | Does | Fires on |
@@ -512,6 +562,12 @@ A **skill** is just a markdown file with a trigger phrase + a procedure. Any age
 | `prototype` | Throwaway prototype to answer a design/state question | "sanity-check this UI/logic" |
 | `grilling-frontend-prototyping` | Converge a look through rounds of live prototypes + verdicts | UI taste iteration |
 | `taste-loop-sprint` | One-day design sprint: plan → outside-voice review → orthogonal live variants → verdicts → deck → deploy | "taste loop", "design sprint" |
+
+*Memory & fleet ops*
+| Skill | Does | Fires on |
+|-------|------|----------|
+| `gbrain-recall` | The gbrain operating manual — page/slug/wiki-link conventions, lock recovery, which query tool for which temporal question | gbrain errors, writing new pages, cross-session recall |
+| `fleet-drive` | Resumes the attended driver seat for the autonomous fleet: newest checkpoint → live-state verify → bounded monitor loop | "fleet drive" (Tavisi-only, but a template for babysitting any agent fleet) |
 
 **How to replicate the pack on a fresh machine:**
 
@@ -594,15 +650,17 @@ Skills currently installed on this box (name — one-line description):
 - `codex-implement` — Delegate a well-specified implementation to OpenAI Codex as a write-access subagent, then verify and open a PR. Use when the user wants Code
 - `codex` — OpenAI Codex CLI wrapper — three modes. (gstack)
 - `connect-chrome` — Launch GStack Browser — AI-controlled Chromium with the sidebar extension baked in.
+- `conserve-claude` — Stay as orchestrator/reviewer while routing heavy authoring and grunt work to codex/grok subagents, to conserve Claude usage without losing 
 - `context-restore` — Restore working context saved earlier by /context-save. (gstack)
 - `context-save` — Save working context. (gstack)
 - `council` — Convene the Council of High Intelligence — multi-persona deliberation with historical thinkers for deeper analysis of complex problems.
 - `cso` — Chief Security Officer mode. (gstack)
+- `deploy-preflight` — Pre-deploy verification for web apps: proves the build works from a clean clone with no sibling directories, and that every env var and secr
 - `design-consultation` — Design consultation: understands your product, researches the landscape, proposes a complete design system (aesthetic, typography, color, la
 - `design-html` — Design finalization: generates production-quality Pretext-native HTML/CSS. (gstack)
 - `design-review` — Designer's eye QA: finds visual inconsistency, spacing issues, hierarchy problems, AI slop patterns, and slow interactions — then fixes them
 - `design-shotgun` — Design shotgun: generate multiple AI design variants, open a comparison board, collect structured feedback, and iterate. (gstack)
-- `design-system-forge` — Forge a ratified, handoff-grade design system from real reference sites. Extract design language, cluster into token-backed archetypes, buil
+- `design-system-forge` — Forge a ratified, handoff-grade design system from real reference sites - extract design language, cluster into token-backed archetypes, bui
 - `devex-review` — Live developer experience audit. (gstack)
 - `diagram-design` — Create technical and product diagrams — architecture, IT current-state, flowchart, sequence, state machine, ER / data model, timeline, swiml
 - `diagram` — Turn an English description (or mermaid source) into a diagram triplet: the source, an editable .excalidraw file you can open (gstack)
@@ -612,8 +670,10 @@ Skills currently installed on this box (name — one-line description):
 - `explain-diff-html` — Use when the user asks for a rich explanation of a code change, diff, branch, or PR. Produces HTML output.
 - `extract-design` — Extract the full design language from any website URL. Produces 8 output files including AI-optimized markdown, visual HTML preview, Tailwin
 - `factory` — |
+- `fleet-drive` — Resume the attended fleet-driver seat for the Tavisi autonomous fleet on VM hareesh2. Reads the newest checkpoint, verifies live VM state, a
 - `freeze` — Restrict file edits to a specific directory for the session. (gstack)
 - `frontend-slides` — Create stunning, animation-rich HTML presentations from scratch or by converting PowerPoint files. Use when the user wants to build a presen
+- `gbrain-recall` — How to read from and write to gbrain, the cross-project memory. Use when a gbrain call fails with a lock or 'database is locked' or PGLite e
 - `goalbuddy` — Goal Prep for GoalBuddy. Use for broad, long-running, stalled, vague, detailed, planned, or unhealthy Codex or Claude Code work that needs a
 - `grilling-frontend-prototyping` — Converge on a frontend look through rounds of prototypes and grilling verdicts. Use when the user wants to iterate on UI/visual taste agains
 - `grilling` — Grill the user relentlessly about a plan, decision, or idea. Use when the user wants to stress-test their thinking, or uses any 'grill' trig
@@ -654,7 +714,7 @@ Skills currently installed on this box (name — one-line description):
 - `spec` — Turn vague intent into a precise, executable spec in five phases. (gstack)
 - `sync-gbrain` — Keep gbrain current with this repo's code and refresh agent search guidance in CLAUDE.md. Wraps the gstack-gbrain-sync orchestrator with sta
 - `taste-loop-sprint` — One-day taste sprint that converges a surface's design through live prototypes and cross-model review, ending with a public shareable deck. 
-- `tavisi-audit` — Tavisi-specific audit, implementation-review, maintainability-review, proof-validation, and test-planning workflow for collateralcore change
+- `tavisi-audit` — Tavisi audit, implementation-review, maintainability-review, proof-validation, and test-planning workflow for collateralcore changes. Use wh
 - `tavisi-fleet-ops` — Diagnose, explain, repair, and improve Tavisi fleet operations across schedulers, services, locks, queues, workers, reviews, model lanes, op
 - `teach-session` — |
 - `thermo-nuclear-code-quality-review` — Run an extremely strict maintainability review for abstraction quality, giant files, and spaghetti-condition growth. Use for a thermo-nuclea
@@ -662,23 +722,10 @@ Skills currently installed on this box (name — one-line description):
 
 **`~/.codex/skills`**
 
-- `ai-slop-cleaner` — [OMX] Run an anti-slop cleanup/refactor/deslop workflow
-- `analyze` — [OMX] Run read-only deep repository analysis and return a ranked synthesis with explicit confidence, concrete file references, and clear evi
-- `ask` — [OMX] Ask a local external advisor CLI (Claude or Gemini) and capture a reusable artifact
-- `autopilot` — [OMX] Strict autonomous loop: $ralplan -> $ralph -> $code-review
-- `autoresearch-goal` — [OMX] Durable professor-critic research workflow over Codex goal mode without reviving deprecated omx autoresearch
-- `autoresearch` — [OMX] Stateful validator-gated research loop with native-hook persistence
-- `best-practice-research` — [OMX] Bounded best-practice research wrapper using official/upstream evidence first
-- `cancel` — [OMX] Cancel any active OMX mode (autopilot, ralph, ultrawork, ecomode, ultraqa, swarm, ultrapilot, pipeline, team)
 - `code-judo-quality-review` — Run a native Codex extremely strict maintainability review for abstraction quality, giant files, spaghetti-condition growth, and dramatic st
-- `code-review` — [OMX] Run a comprehensive code review
 - `codex-primary-runtime`
-- `configure-notifications` — [OMX] Configure OMX notifications - unified entry point for all platforms
 - `council` — Convene the Council of High Intelligence in Codex when the user asks for /council, council deliberation, triads, duo debates, or multi-persp
-- `deep-interview` — [OMX] Socratic deep interview with mathematical ambiguity gating before execution
-- `design` — [OMX] Canonical repo-local DESIGN.md workflow for product, UI/UX, and frontend decision source of truth
 - `dispatch-loop` — Compatibility trigger for exactly one installed Tavisi durable-scheduler pass.
-- `doctor` — [OMX] Diagnose and fix oh-my-codex installation issues
 - `entry-point-analyzer` — Analyzes smart contract codebases to identify state-changing entry points for security auditing. Detects externally callable functions that 
 - `ethskills` — Use when a request involves Ethereum, the EVM, or blockchain systems. Applies to building, auditing, deploying, or interacting with smart co
 - `foundry-poc` — Generates foundry PoC for smart contracts to scientifically from no special privileges to funds lost. Focused on proof of concept for EVM us
@@ -717,14 +764,7 @@ Skills currently installed on this box (name — one-line description):
 - `gstack-upgrade` — |
 - `gstack` — |
 - `guidelines-advisor` — Smart contract development advisor based on Trail of Bits' best practices. Analyzes codebase to generate documentation/specifications, revie
-- `hud` — [OMX] Show or configure the OMX HUD (two-layer statusline)
 - `mediabunny` — Multimedia handling with the Mediabunny library
-- `omx-setup` — [OMX] Setup and configure oh-my-codex using current CLI behavior
-- `performance-goal` — [OMX] Run an evaluator-gated performance optimization workflow over Codex goal mode with durable OMX artifacts and safe goal handoffs.
-- `pipeline` — [OMX] Configurable pipeline orchestrator for sequencing stages
-- `plan` — [OMX] Strategic planning with optional interview workflow
-- `ralph` — [OMX] Self-referential loop until task completion with architect verification
-- `ralplan` — [OMX] Alias for $plan --consensus
 - `remotion-best-practices` — Best practices for Remotion
 - `remotion-captions` — Dealing with captions in Remotion
 - `remotion-create` — Creating a new Remotion video
@@ -734,22 +774,14 @@ Skills currently installed on this box (name — one-line description):
 - `remotion-render` — Best practices for rendering videos
 - `remotion-saas` — Building video apps with Remotion - framework, rendering and Player advice
 - `secure-workflow-guide` — Guides through Trail of Bits' 5-step secure development workflow. Runs Slither scans, checks special features (upgradeability/ERC conformanc
-- `skill` — [OMX] Manage local skills - list, add, remove, search, edit, setup wizard
 - `smart-contract-audit` — Comprehensive smart contract security audit framework with multi-expert analysis. Use for full audits of Ethereum / EVM Solidity and Vyper, 
 - `tavisi-audit` — Tavisi-specific audit, implementation-review, maintainability-review, proof-validation, and test-planning workflow for collateralcore change
 - `tavisi-dispatcher-codex` — Run the Tavisi fleet dispatcher from Codex. Codex is primary-eligible — it runs the FULL dispatcher pass when it holds the orchestrator chai
 - `tavisi-fleet-ops` — Diagnose, explain, repair, and improve Tavisi fleet operations across schedulers, services, locks, queues, workers, reviews, model lanes, op
 - `teach-session` — Become a wise, patient, ruthlessly effective teacher for a coding session so the human deeply understands the problem, solution, design deci
-- `team` — [OMX] N coordinated agents on shared task list using tmux-based orchestration
 - `thermo-nuclear-code-quality-review` — Run Codex-native extremely strict maintainability audit for current branches, PRs, and local diffs. Use when asked for thermo-nuclear review
 - `thermonuclear-code-quality-review` — Run a Codex-native extremely strict maintainability audit for current branches, PRs, or local diffs. Use when asked for thermonuclear code q
 - `tiny-auditor` — Audit codebase to uncover critical issues explicitly and certainly leading to loss of funds without false positives
 - `token-integration-analyzer` — Token integration and implementation analyzer based on Trail of Bits' token integration checklist. Analyzes token implementations for ERC20/
-- `ultragoal` — [OMX] Create and execute durable repo-native multi-goal plans over Codex goal mode artifacts.
-- `ultraqa` — [OMX] Adversarial dynamic e2e QA workflow - generate hostile scenarios, test, verify, fix, report, and clean up
-- `ultrawork` — [OMX] Parallel execution engine for high-throughput task completion
-- `visual-ralph` — [OMX] Visual Ralph orchestration for frontend UI from generated references, static references, or live URL targets, using $ralph with built-
-- `wiki` — [OMX] Persistent markdown project wiki stored under repository omx_wiki with keyword search and lifecycle capture
-- `worker` — [OMX] Team worker protocol (ACK, mailbox, task lifecycle) for tmux-based OMX teams
 
 <!-- SKILLS:END -->

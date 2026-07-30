@@ -20,6 +20,10 @@ link "$D/tmux.conf"               "$HOME/.tmux.conf"
 link "$D/vimrc"                   "$HOME/.vimrc"
 link "$D/gitignore_global"        "$HOME/.gitignore_global"
 link "$D/config-tmux/git-status.sh" "$HOME/.config/tmux/git-status.sh"
+# Ghostty reads the XDG path on every platform (macOS additionally reads
+# ~/Library/Application Support/com.mitchellh.ghostty/config; identical keys merge cleanly).
+link "$D/ghostty/config"          "$HOME/.config/ghostty/config"
+link "$D/ghostty/themes/ayu-dark" "$HOME/.config/ghostty/themes/ayu-dark"
 
 echo
 echo "Linked the safe dotfiles. Manual steps (identity/secrets — intentionally not automated):"

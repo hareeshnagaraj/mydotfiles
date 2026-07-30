@@ -26,6 +26,19 @@ copy "$HOME/.vimrc"                     "vimrc"
 copy "$HOME/.gitignore_global"          "gitignore_global"
 copy "$HOME/.config/tmux/git-status.sh" "config-tmux/git-status.sh"
 chmod +x "$D/config-tmux/git-status.sh" 2>/dev/null || true
+
+# Ghostty: the live config sits in macOS Application Support; strip Ghostty's
+# auto-generated template banner (comments/blanks) so the repo keeps only real settings.
+ghostty_live="$HOME/Library/Application Support/com.mitchellh.ghostty/config"
+if [ -f "$ghostty_live" ]; then
+  mkdir -p "$D/ghostty"
+  grep -vE '^[[:space:]]*(#|$)' "$ghostty_live" | "$SCRUB" redact > "$D/ghostty/config"
+  echo "synced $ghostty_live -> dotfiles/ghostty/config (comments stripped)"
+else
+  echo "skip (missing): $ghostty_live"
+fi
+copy "$HOME/.config/ghostty/themes/ayu-dark" "ghostty/themes/ayu-dark"
+
 # NOTE: ~/.zshrc and ~/.gitconfig are NOT synced raw — they hold secrets/identity.
 #       Curate dotfiles/zshrc.snippets and dotfiles/gitconfig.template by hand.
 
