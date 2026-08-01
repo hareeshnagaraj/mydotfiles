@@ -5,6 +5,24 @@ reference-for-future-me, part a guide anyone can hand their local LLM to stand u
 same setup. No secrets live here — every credential is a `<<PLACEHOLDER>>` you supply
 yourself.
 
+## New here? (total-beginner path)
+
+Don't read this file — hand it to an AI and let it do the work. On a Mac:
+
+1. Install [Claude Code](https://claude.com/claude-code) (or Cursor, or Codex — any
+   agent that can run terminal commands).
+2. Paste it this repo's URL and say:
+
+   > Set my machine up from https://github.com/hareeshnagaraj/mydotfiles — go
+   > section by section, ask me before each piece, and skip anything I won't
+   > need as a beginner.
+
+3. Say yes to Homebrew, the font, and the shell basics; skip whatever sounds like
+   overkill. You can rerun this any time and add more.
+
+The guide below is written for the AI to execute, so that's genuinely all there is
+to it.
+
 ## Layout
 
 ```
