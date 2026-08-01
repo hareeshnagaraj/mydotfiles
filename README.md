@@ -713,7 +713,7 @@ Skills currently installed on this box (name — one-line description):
 - `spar` — Adversarial spar: send a plan/decision/conclusion to Grok to be attacked, not validated. Grok steelmans the opposite and returns the sharpes
 - `spec` — Turn vague intent into a precise, executable spec in five phases. (gstack)
 - `sync-gbrain` — Keep gbrain current with this repo's code and refresh agent search guidance in CLAUDE.md. Wraps the gstack-gbrain-sync orchestrator with sta
-- `taste-loop-sprint` — One-day taste sprint that converges a surface's design through live prototypes and cross-model review, ending with a public shareable deck. 
+- `taste-loop-sprint` — Taste sprint that converges a surface's design through live prototypes and cross-model review, ending with a public link you walk a stakehol
 - `tavisi-audit` — Tavisi audit, implementation-review, maintainability-review, proof-validation, and test-planning workflow for collateralcore changes. Use wh
 - `tavisi-fleet-ops` — Diagnose, explain, repair, and improve Tavisi fleet operations across schedulers, services, locks, queues, workers, reviews, model lanes, op
 - `teach-session` — |
