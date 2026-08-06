@@ -1,0 +1,52 @@
+#!/bin/bash
+# Toggle (or force) synchronize-panes on the current tmux window.
+# Usage: tmux-sync [on|off|toggle]
+# Works from a pane, or with TMUX_TARGET=session:window from outside.
+set -euo pipefail
+mode="${1:-toggle}"
+target="${TMUX_TARGET:-}"
+
+if [ -z "$target" ] && [ -z "${TMUX:-}" ]; then
+  # Outside tmux: pick the most recently used session's active window
+  target="$(tmux display-message -p -t "$(tmux list-sessions -F '#{session_last_attached} #{session_name}' | sort -nr | head -1 | awk '{print $2}')" '#S:#I' 2>/dev/null || true)"
+  if [ -z "$target" ]; then
+    echo "tmux-sync: no tmux session found" >&2
+    exit 1
+  fi
+fi
+
+flag() {
+  if [ -n "$target" ]; then
+    tmux display-message -p -t "$target" '#{pane_synchronized}'
+  else
+    tmux display-message -p '#{pane_synchronized}'
+  fi
+}
+
+set_sync() {
+  local v="$1"
+  if [ -n "$target" ]; then
+    tmux set-window-option -t "$target" synchronize-panes "$v"
+  else
+    tmux set-window-option synchronize-panes "$v"
+  fi
+}
+
+case "$mode" in
+  on|1|true)  set_sync on  ;;
+  off|0|false) set_sync off ;;
+  toggle|t|"") 
+    if [ "$(flag)" = "1" ]; then set_sync off; else set_sync on; fi
+    ;;
+  *)
+    echo "usage: tmux-sync [on|off|toggle]" >&2
+    exit 2
+    ;;
+esac
+
+state="$(flag)"
+if [ "$state" = "1" ]; then
+  echo "SYNC ON${target:+ ($target)}"
+else
+  echo "SYNC OFF${target:+ ($target)}"
+fi
