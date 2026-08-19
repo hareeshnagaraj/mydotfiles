@@ -410,37 +410,72 @@ let g:markdown_folding = 0
 
 ---
 
-## yazi — file tree + glow, always inside tmux
+## yazi — how I read files without VS Code
 
-**What & why:** I stay in tmux. `y` is a ranger-style file tree in the current pane.
-`i` opens the hovered file in [glow](https://github.com/charmbracelet/glow) full-screen
-(read). Enter opens vim (edit). `q` leaves glow (or yazi). Copy is still tmux
-(`Ctrl-a` `[` then `v`/`y`, or `Ctrl-a` `C-p`) — not Ghostty-native select.
+**What & why:** Ghostty is the terminal. tmux is the session (one window, four
+agent panes). [yazi](https://yazi-rs.github.io/) is the file tree in a pane.
+[glow](https://github.com/charmbracelet/glow) is the markdown reader. vim is the
+editor. I do not open VS Code to look at a plan or a doc.
+
+### The stack
+
+```
+Ghostty (ayu-dark)
+  └── tmux  (prefix = Caps+A / Ctrl-a)
+        ├── agent panes (Claude / Grok / Codex / …)
+        └── a shell pane
+              └── y   → yazi tree
+                    ├── i      → glow (read)
+                    └── Enter  → vim  (edit)
+```
+
+Configs: `dotfiles/yazi/{yazi,keymap,package,theme}.toml` (symlinked by
+`make install`). Flavor is **ayu-dark** so yazi matches Ghostty, not the mocha
+tmux bar. Piper (md preview) and the flavor are **not** vendored:
 
 ```bash
 brew install yazi fd zoxide   # glow is already in the handy-utilities line
-```
-
-Append the yazi block from `dotfiles/zshrc.snippets` to `~/.zshrc` (`EDITOR`/`VISUAL=vim`,
-the official `y` cwd-file wrapper, `eval "$(zoxide init zsh)"`). Then:
-
-```bash
-# after `make install` (symlinks ~/.config/yazi/{yazi.toml,keymap.toml,package.toml,theme.toml})
+# after make install:
 ya pkg add yazi-rs/plugins:piper kmlupreti/ayu-dark
 ```
 
-| In yazi | What |
-|---------|------|
-| `y` (from the shell) | open the tree in this tmux pane |
-| `hjkl` | move |
-| `i` | read in glow; `q` back to yazi |
-| Enter | edit in vim |
-| `,` `M` | newest-modified first + show dates |
-| `q` / `Q` | quit (`q` cds to last dir via the wrapper; `Q` does not) |
+Append the yazi block in `dotfiles/zshrc.snippets` to `~/.zshrc`: `EDITOR`/`VISUAL=vim`,
+the official `y` cwd-file wrapper, `eval "$(zoxide init zsh)"`, and `alias plans=…`.
 
-Configs live in `dotfiles/yazi/`. Flavor is **ayu-dark** to match Ghostty. Piper and
-the flavor are **not** vendored — `ya pkg add` installs them. Default sort is newest
-modified first, with the date column on.
+### Daily keys (all inside tmux)
+
+| Want | Do |
+|------|----|
+| Open the tree here | `y` |
+| Open Claude's plan folder | `plans`  (`y ~/.claude/plans`, newest first) |
+| Read markdown | hover the file, **`i`** (glow). `q` back to yazi |
+| Edit | **Enter** (vim). `:q` back to yazi |
+| Newest / dates | default is newest-modified first with the date column on. `,` `M` if you turned it off |
+| Leave yazi | `q` (shell cds to last dir) or `Q` (stay put) |
+| Copy text | `Caps+A` `[` then `v`/`y`  — or `Caps+A` `C-p` for unwrapped agent output. Paste: Cmd-v |
+| Zoom one agent | `Caps+A` `z` (not copy) |
+
+`hjkl` moves. `z` in yazi is fzf jump. `Z` is zoxide. `s` is fd name search.
+
+### Do not
+
+- **Click the path** under a Claude plan (`ctrl+g to edit in VS Code` /
+  `~/.claude/plans/….md`). Ghostty hands that click to macOS, which opens
+  VS Code. Hop to a shell pane and run `plans`, then `i`.
+- Scroll the skinny yazi preview with `J`/`K` to *read*. That's a glance.
+  `i` is the reader.
+- Use tmux copy-mode and Ghostty-native select as two competing habits.
+  Copy is tmux-only.
+
+### Files
+
+| File | Role |
+|------|------|
+| `dotfiles/yazi/yazi.toml` | newest-first, mtime column, wider preview, glow via piper |
+| `dotfiles/yazi/keymap.toml` | `i` → `glow -t` |
+| `dotfiles/yazi/theme.toml` | `dark = "ayu-dark"` |
+| `dotfiles/yazi/package.toml` | pins piper + ayu-dark (`ya pkg`) |
+| `dotfiles/zshrc.snippets` | `y()`, `plans`, `EDITOR=vim`, zoxide |
 
 ---
 
