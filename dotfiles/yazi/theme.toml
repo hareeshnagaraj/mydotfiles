@@ -1,0 +1,4 @@
+# Matches Ghostty `theme = ayu-dark`. Flavor is installed via:
+#   ya pkg add kmlupreti/ayu-dark
+[flavor]
+dark = "ayu-dark"

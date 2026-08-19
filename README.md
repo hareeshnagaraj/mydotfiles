@@ -36,7 +36,7 @@ mydotfiles/
 │   ├── gitconfig.template   (fill in your own name/email)
 │   ├── config-tmux/git-status.sh
 │   ├── ghostty/             (terminal config + ayu-dark theme)
-│   └── yazi/                (file tree + glow read: yazi.toml, keymap.toml, package.toml)
+│   └── yazi/                (file tree + glow + ayu-dark flavor matching Ghostty)
 ├── scripts/
 │   ├── install.sh       ← symlink dotfiles into ~ (backs up existing)
 │   ├── sync.sh          ← pull my current configs back in, scrubbed (the periodic update)
@@ -425,8 +425,8 @@ Append the yazi block from `dotfiles/zshrc.snippets` to `~/.zshrc` (`EDITOR`/`VI
 the official `y` cwd-file wrapper, `eval "$(zoxide init zsh)"`). Then:
 
 ```bash
-# after `make install` (symlinks ~/.config/yazi/{yazi.toml,keymap.toml,package.toml})
-ya pkg add yazi-rs/plugins:piper   # markdown preview in the right pane; `i` works without it
+# after `make install` (symlinks ~/.config/yazi/{yazi.toml,keymap.toml,package.toml,theme.toml})
+ya pkg add yazi-rs/plugins:piper kmlupreti/ayu-dark
 ```
 
 | In yazi | What |
@@ -438,7 +438,9 @@ ya pkg add yazi-rs/plugins:piper   # markdown preview in the right pane; `i` wor
 | `,` `M` | newest-modified first + show dates |
 | `q` / `Q` | quit (`q` cds to last dir via the wrapper; `Q` does not) |
 
-Configs live in `dotfiles/yazi/`. Piper is **not** vendored — `ya pkg add` installs it.
+Configs live in `dotfiles/yazi/`. Flavor is **ayu-dark** to match Ghostty. Piper and
+the flavor are **not** vendored — `ya pkg add` installs them. Default sort is newest
+modified first, with the date column on.
 
 ---
 

@@ -33,6 +33,7 @@ fi
 link "$D/yazi/yazi.toml"          "$HOME/.config/yazi/yazi.toml"
 link "$D/yazi/keymap.toml"        "$HOME/.config/yazi/keymap.toml"
 link "$D/yazi/package.toml"       "$HOME/.config/yazi/package.toml"
+link "$D/yazi/theme.toml"         "$HOME/.config/yazi/theme.toml"
 
 echo
 echo "Linked the safe dotfiles. Manual steps (identity/secrets — intentionally not automated):"
@@ -40,5 +41,5 @@ echo "  • ~/.gitconfig     : cp $D/gitconfig.template ~/.gitconfig  then fill 
 echo "  • ~/.zshrc         : append the parts you want from $D/zshrc.snippets"
 echo "  • Caps Lock → Control (macOS System Settings → Keyboard → Modifier Keys) — enables Caps+A as tmux prefix"
 echo "  • tmux plugins     : git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm ; open tmux, prefix + I"
-echo "  • yazi piper plugin: ya pkg add yazi-rs/plugins:piper   # markdown glow preview"
+echo "  • yazi packages    : ya pkg add yazi-rs/plugins:piper kmlupreti/ayu-dark"
 echo "  • optional githooks: make githooks   # flags AI authorship trailers in commit messages"

@@ -83,6 +83,7 @@ fi
 copy "$HOME/.config/yazi/yazi.toml"          "yazi/yazi.toml"
 copy "$HOME/.config/yazi/keymap.toml"        "yazi/keymap.toml"
 copy "$HOME/.config/yazi/package.toml"       "yazi/package.toml"
+copy "$HOME/.config/yazi/theme.toml"         "yazi/theme.toml"
 
 # NOTE: ~/.zshrc and ~/.gitconfig are NOT synced raw — they hold secrets/identity.
 #       Curate dotfiles/zshrc.snippets and dotfiles/gitconfig.template by hand.
