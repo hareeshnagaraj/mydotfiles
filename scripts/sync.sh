@@ -12,11 +12,23 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 D="$REPO/dotfiles"
 SCRUB="$REPO/scripts/scrub.sh"
 
+# Resolve symlinks (macOS has no readlink -f). After `make install`, live
+# paths are links into the repo — skip those so we don't clobber via same inode.
+realpath_of() {
+  python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$1"
+}
+
 copy() { # copy <live> <repo-relative-dest>
-  local live="$1" dest="$D/$2"
+  local live="$1" dest="$D/$2" tmp
   [ -f "$live" ] || { echo "skip (missing): $live"; return; }
   mkdir -p "$(dirname "$dest")"
-  "$SCRUB" redact < "$live" > "$dest"
+  if [ "$(realpath_of "$live")" = "$(realpath_of "$dest")" ]; then
+    echo "skip (already linked into repo): $live"
+    return
+  fi
+  tmp="$(mktemp)"
+  "$SCRUB" redact < "$live" > "$tmp"
+  mv "$tmp" "$dest"
   echo "synced $live -> ${dest#$REPO/}"
 }
 
@@ -38,6 +50,9 @@ else
   echo "skip (missing): $ghostty_live"
 fi
 copy "$HOME/.config/ghostty/themes/ayu-dark" "ghostty/themes/ayu-dark"
+copy "$HOME/.config/yazi/yazi.toml"          "yazi/yazi.toml"
+copy "$HOME/.config/yazi/keymap.toml"        "yazi/keymap.toml"
+copy "$HOME/.config/yazi/package.toml"       "yazi/package.toml"
 
 # NOTE: ~/.zshrc and ~/.gitconfig are NOT synced raw — they hold secrets/identity.
 #       Curate dotfiles/zshrc.snippets and dotfiles/gitconfig.template by hand.

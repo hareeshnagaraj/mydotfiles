@@ -35,7 +35,8 @@ mydotfiles/
 │   ├── zshrc.snippets       (curated safe subset — you append what you want)
 │   ├── gitconfig.template   (fill in your own name/email)
 │   ├── config-tmux/git-status.sh
-│   └── ghostty/             (terminal config + ayu-dark theme)
+│   ├── ghostty/             (terminal config + ayu-dark theme)
+│   └── yazi/                (file tree + glow read: yazi.toml, keymap.toml, package.toml)
 ├── scripts/
 │   ├── install.sh       ← symlink dotfiles into ~ (backs up existing)
 │   ├── sync.sh          ← pull my current configs back in, scrubbed (the periodic update)
@@ -126,7 +127,7 @@ brew install tmux
 brew install node python@3.11 pipx
 
 # Handy utilities
-brew install glow pandoc poppler ffmpeg yt-dlp shellcheck jq
+brew install glow pandoc poppler ffmpeg yt-dlp shellcheck jq yazi fd zoxide
 
 # Networking / infra (skip unless you use them)
 brew install cloudflared tailscale flyctl hcloud
@@ -136,6 +137,8 @@ brew install --cask ghostty orbstack swiftbar
 ```
 
 - `fzf` powers the tmux copy-popup below — **install it if you take the tmux section.**
+- `yazi` `fd` `zoxide` — **install these if you take the yazi section.** `glow` is already
+  on the handy-utilities line (used as the markdown reader).
 - `zsh-autosuggestions` + `zsh-syntax-highlighting` make the shell feel alive (grey
   inline completions + colored validity). Wire-up is in the zsh section.
 
@@ -443,6 +446,38 @@ nnoremap k gk
 autocmd FileType markdown setlocal conceallevel=2 textwidth=0 colorcolumn=0
 let g:markdown_folding = 0
 ```
+
+---
+
+## yazi — file tree + glow, always inside tmux
+
+**What & why:** I stay in tmux. `y` is a ranger-style file tree in the current pane.
+`i` opens the hovered file in [glow](https://github.com/charmbracelet/glow) full-screen
+(read). Enter opens vim (edit). `q` leaves glow (or yazi). Copy is still tmux
+(`Ctrl-a` `[` then `v`/`y`, or `Ctrl-a` `C-p`) — not Ghostty-native select.
+
+```bash
+brew install yazi fd zoxide   # glow is already in the handy-utilities line
+```
+
+Append the yazi block from `dotfiles/zshrc.snippets` to `~/.zshrc` (`EDITOR`/`VISUAL=vim`,
+the official `y` cwd-file wrapper, `eval "$(zoxide init zsh)"`). Then:
+
+```bash
+# after `make install` (symlinks ~/.config/yazi/{yazi.toml,keymap.toml,package.toml})
+ya pkg add yazi-rs/plugins:piper   # markdown preview in the right pane; `i` works without it
+```
+
+| In yazi | What |
+|---------|------|
+| `y` (from the shell) | open the tree in this tmux pane |
+| `hjkl` | move |
+| `i` | read in glow; `q` back to yazi |
+| Enter | edit in vim |
+| `,` `M` | newest-modified first + show dates |
+| `q` / `Q` | quit (`q` cds to last dir via the wrapper; `Q` does not) |
+
+Configs live in `dotfiles/yazi/`. Piper is **not** vendored — `ya pkg add` installs it.
 
 ---
 

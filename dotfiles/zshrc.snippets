@@ -49,3 +49,19 @@ alias vfable=venicefable
 
 # --- Secrets belong in Keychain, never inline. Example pattern: ---
 #   export SOME_TOKEN="$(security find-generic-password -a "$USER" -s some-service -w)"
+
+# --- yazi: file tree in the tmux pane. `y` cds to last dir on quit (`Q` quits without cd). ---
+# Needs: brew install yazi fd zoxide   (glow is already in the handy-utilities brew line)
+export EDITOR=vim
+export VISUAL=vim
+
+function y() {
+	local tmp cwd
+	tmp="$(mktemp -t "yazi-cwd.XXXXXX")"
+	command yazi "$@" --cwd-file="$tmp"
+	IFS= read -r -d '' cwd < "$tmp"
+	[ "$cwd" != "$PWD" ] && [ -d "$cwd" ] && builtin cd -- "$cwd" || builtin true
+	command rm -f -- "$tmp"
+}
+
+eval "$(zoxide init zsh)"

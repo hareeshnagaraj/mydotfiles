@@ -24,9 +24,13 @@ link "$D/config-tmux/git-status.sh" "$HOME/.config/tmux/git-status.sh"
 # ~/Library/Application Support/com.mitchellh.ghostty/config; identical keys merge cleanly).
 link "$D/ghostty/config"          "$HOME/.config/ghostty/config"
 link "$D/ghostty/themes/ayu-dark" "$HOME/.config/ghostty/themes/ayu-dark"
+link "$D/yazi/yazi.toml"          "$HOME/.config/yazi/yazi.toml"
+link "$D/yazi/keymap.toml"        "$HOME/.config/yazi/keymap.toml"
+link "$D/yazi/package.toml"       "$HOME/.config/yazi/package.toml"
 
 echo
 echo "Linked the safe dotfiles. Manual steps (identity/secrets — intentionally not automated):"
 echo "  • ~/.gitconfig     : cp $D/gitconfig.template ~/.gitconfig  then fill in name/email"
 echo "  • ~/.zshrc         : append the parts you want from $D/zshrc.snippets"
 echo "  • tmux plugins     : git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm ; open tmux, prefix + I"
+echo "  • yazi piper plugin: ya pkg add yazi-rs/plugins:piper   # markdown glow preview"

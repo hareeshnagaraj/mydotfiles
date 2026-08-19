@@ -1,0 +1,4 @@
+# Markdown preview via glow (already on PATH). Full-screen read is `i` (keymap.toml).
+[[plugin.prepend_previewers]]
+url = "*.md"
+run = 'piper -- CLICOLOR_FORCE=1 glow -w=$w -s=dark "$1"'

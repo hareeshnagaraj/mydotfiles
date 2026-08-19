@@ -1,0 +1,6 @@
+# Read in glow (full screen). q returns to yazi.
+# Enter stays vim (edit).
+[[mgr.prepend_keymap]]
+on = "i"
+run = "shell --block -- glow -t %h"
+desc = "Read with glow"
