@@ -29,7 +29,7 @@ to it.
 mydotfiles/
 ├── README.md            ← this guide (narrated, opt-in, LLM-friendly)
 ├── dotfiles/            ← the actual scrubbed configs (symlinked into ~ by install.sh)
-│   ├── tmux.conf
+│   ├── tmux.conf            (multi-agent zoom workflow + Catppuccin)
 │   ├── vimrc
 │   ├── gitignore_global
 │   ├── zshrc.snippets       (curated safe subset — you append what you want)
@@ -42,8 +42,9 @@ mydotfiles/
 │   ├── sync.sh          ← pull my current configs back in, scrubbed (the periodic update)
 │   ├── scrub.sh         ← secret redactor + hard scanner (the safety spine)
 │   └── pre-commit       ← blocks any commit that would leak a secret
+├── githooks/            ← global AI-attribution guard (commit-msg warn/block)
 ├── launchd/             ← optional weekly auto-sync agent (never pushes)
-└── Makefile             ← make install | sync | scan | hook | sync-install
+└── Makefile             ← make install | sync | scan | hook | githooks | sync-install
 ```
 
 ## Use it
@@ -51,13 +52,14 @@ mydotfiles/
 ```bash
 make install       # link dotfiles into ~ (safe; backs up what it replaces)
 make hook          # install the pre-commit secret scanner (do this once)
+make githooks      # optional: global hooks that flag AI authorship trailers
 make sync          # pull this box's current configs back into the repo, scrubbed + scanned
 make sync-install  # optional: weekly launchd agent that runs sync (stages only, never pushes)
 ```
 
 `sync.sh` is how mydotfiles stays current: it re-copies my live dotfiles through the secret
-redactor, regenerates the "skills on this box" appendix, hard-scans for leaks, and stages
-the diff — commit + push stay manual, always.
+redactor, regenerates the "skills on this box" appendix (Claude + Codex + Grok + Cursor +
+agents), hard-scans for leaks, and stages the diff — commit + push stay manual, always.
 
 ---
 
@@ -150,16 +152,25 @@ brew install --cask ghostty orbstack swiftbar
 text file — no settings maze. Mine is two lines: the Nerd Font everything below assumes,
 and an Ayu Dark theme (a custom port; the palette matches how I like tmux/vim to sit).
 
-The whole config — `~/.config/ghostty/config` (on macOS Ghostty also reads
-`~/Library/Application Support/com.mitchellh.ghostty/config`; either works):
+**Paths (important on macOS):** Ghostty merges keys from both of these if both exist:
+
+1. `~/.config/ghostty/config` (XDG — portable)
+2. `~/Library/Application Support/com.mitchellh.ghostty/config` (macOS App Support)
+
+`make install` **symlinks the same repo file into both**, so an empty App Support template
+cannot silently override your theme/font. `make sync` prefers App Support, then falls
+back to XDG, and strips comment banners so the repo only keeps real settings.
+
+The config content:
 
 ```
 theme = ayu-dark
 font-family = CaskaydiaCove Nerd Font Mono
 ```
 
-The theme is a file dropped at `~/.config/ghostty/themes/ayu-dark` — Ghostty picks up
-any file in that dir by name, so `theme = ayu-dark` just works:
+The theme is a file dropped at `~/.config/ghostty/themes/ayu-dark` (and the matching App
+Support themes path on macOS) — Ghostty picks up any file in that dir by name, so
+`theme = ayu-dark` just works:
 
 ```
 background = #0b0e14
@@ -191,11 +202,22 @@ Both files live in `dotfiles/ghostty/` and are linked by `install.sh` / re-absor
 
 ---
 
+## Caps Lock → Control (required for the tmux muscle memory)
+
+**What & why:** tmux prefix is `Ctrl-a`. I remap **Caps Lock → Control** in macOS
+**System Settings → Keyboard → Modifier Keys** so the prefix is **Caps+A** under my
+left pinky — no chord gymnastics. Without this remap, use plain `Ctrl-a` instead.
+
+This is a macOS setting, not a file in the repo. Do it once per machine / keyboard.
+
+---
+
 ## zsh — shell config
 
-**What & why:** agnoster prompt with live git branch, a few aliases, PATH for the tool
-stack, and two non-obvious tricks (a tmux-safe mouse flag for AI TUIs, and a helper to
-run Codex against a Venice-hosted model). Append to `~/.zshrc`.
+**What & why:** agnoster prompt with live git branch, a few aliases, PATH for agent
+CLIs, the multi-agent tmux cheat sheet, a tmux-safe mouse flag for AI TUIs, and a
+helper to run Codex against a Venice-hosted model. Append to `~/.zshrc` (or copy from
+`dotfiles/zshrc.snippets`).
 
 ```bash
 # --- aliases ---
@@ -217,13 +239,18 @@ source $(brew --prefix)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zs
 # --- completions ---
 autoload -Uz compinit && compinit -C
 
-# --- tmux cheat sheet (prefix = Ctrl-a, see ~/.tmux.conf) ---
-# Sessions:   tmux new -s name | tmux ls | tmux attach -t name | prefix d (detach)
-# Windows:    prefix c (new) | prefix n/p (next/prev) | prefix 0-9 (jump) | prefix , (rename) | prefix w (list)
-# Panes:      prefix | / - (split) | prefix h j k l (move) | prefix H J K L (resize) | prefix z (zoom) | prefix x (kill)
-# Copy mode:  prefix [ (enter) | v (select) | y (yank to macOS clipboard) | q (quit)
-# Block copy: prefix C-p (fzf popup of clean scrollback)
-# Misc:       prefix r (reload config) | prefix ? (list all keybinds)
+# --- agent CLIs on PATH ---
+export PATH="$HOME/.grok/bin:$HOME/.local/bin:$PATH"
+
+# --- tmux multi-agent workflow (prefix = Ctrl-a; Caps Lock → Control on this Mac) ---
+# Prefix:     Caps+A
+# Hop panes:  prefix then arrows  OR  h/j/k/l  OR  click the pane
+# Zoom:       prefix then z   (full-screen the active agent; again to leave)
+# 2×2 grid:   split into 4 panes, then prefix then Z  (tiled layout)
+# Windows:    prefix c (new) | n/p (next/prev) | 0-9 | , (rename)
+# Splits:     prefix | (horizontal) | - (vertical)
+# Copy:       prefix [  then v/y  |  prefix C-p (fzf clean multi-line copy)
+# Misc:       prefix r (reload) | prefix T (name pane) | prefix ? (all binds)
 
 # --- THE non-obvious one ---
 # Claude Code (and similar agent TUIs) use the terminal's alternate-screen buffer and
@@ -232,12 +259,19 @@ autoload -Uz compinit && compinit -C
 [ -n "$TMUX" ] && export CLAUDE_CODE_DISABLE_MOUSE=1
 ```
 
-**Optional — run Codex against a Venice-hosted model** (I use this to drive `claude-fable-5`
-through the Codex CLI). Needs your own OpenRouter/Venice key in the macOS Keychain:
+**Secrets — always Keychain, never inline in `~/.zshrc`:**
 
 ```bash
-# store your key once:
+# store once:
+#   security add-generic-password -a "$USER" -s hcloud-token -w '<<YOUR_HCLOUD_TOKEN>>'
 #   security add-generic-password -a "$USER" -s my-openrouter-key -w '<<YOUR_OPENROUTER_KEY>>'
+export HCLOUD_TOKEN="$(security find-generic-password -a "$USER" -s hcloud-token -w 2>/dev/null)"
+```
+
+**Optional — run Codex against a Venice-hosted model** (I use this to drive `claude-fable-5`
+through the Codex CLI):
+
+```bash
 venicefable() {
   local k; k="$(security find-generic-password -a "$USER" -s my-openrouter-key -w 2>/dev/null)"
   [ -z "$k" ] && { print -u2 "venicefable: missing Keychain item my-openrouter-key"; return 1; }
@@ -251,17 +285,37 @@ venicefable() {
 alias vfable=venicefable
 ```
 
-> **Secrets note:** the original `.zshrc` also exported a couple of service tokens
-> (`HCLOUD_TOKEN`, a gbrain bearer). Those are deliberately omitted. If you use Hetzner
-> or gbrain, add your own — ideally via Keychain like `venicefable` above, not inline.
+> **Secrets note:** never commit tokens. `sync.sh` does **not** absorb raw `~/.zshrc` or
+> `~/.gitconfig` for this reason. Cloud tokens (Hetzner `hcloud-token`, OpenRouter, etc.)
+> live in Keychain only.
 
 ---
 
 ## tmux — the big one
 
-**What & why:** `Ctrl-a` prefix, vim pane navigation, a self-hiding git pill in the
-status bar, Catppuccin Mocha theme, session persistence, and an fzf popup that copies
-clean multi-line text without pane-width line breaks. This is the most-tuned config here.
+**What & why:** `Ctrl-a` prefix (Caps+A with the Caps→Control remap), multi-agent zoom
+workflow, vim pane navigation, a self-hiding git pill, Catppuccin Mocha, session
+persistence, and an fzf popup that copies clean multi-line text. Canonical file:
+`dotfiles/tmux.conf` (linked by `make install`).
+
+### Multi-agent zoom workflow (how I actually work)
+
+I run **one Ghostty window → one tmux session → four panes** (e.g. Claude / Grok /
+Codex / shell). Agents stay alive in the small panes; I only full-screen the one I'm
+driving.
+
+| Action | Keys |
+|--------|------|
+| Prefix | **Caps+A** (or `Ctrl-a`) |
+| Hop panes | prefix then **arrows** or **h/j/k/l**, or **click** a pane |
+| Zoom / unzoom | prefix then **z** — yellow **Z** appears in the status bar while zoomed |
+| Even 2×2 layout | create four panes, then prefix then **Z** (`select-layout tiled`) |
+| Name a pane | prefix then **T** |
+| Reload config | prefix then **r** |
+
+Why this works: four agent TUIs visible at once is noisy but high-bandwidth; zoom
+gives full attention without killing the other sessions. Continuum/resurrect keep the
+layout across reboots.
 
 **Install TPM (plugin manager) first, then drop the config:**
 
@@ -269,117 +323,24 @@ clean multi-line text without pane-width line breaks. This is the most-tuned con
 git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm
 ```
 
-Write `~/.tmux.conf`:
+Prefer `make install` (symlinks `dotfiles/tmux.conf`). If you must paste by hand, write
+`~/.tmux.conf` from that file. Highlights of the live config:
 
 ```tmux
-# ===== General =====
-set -g mouse on
-set -g history-limit 20000
-set -g renumber-windows on
-set -sg escape-time 10
-set -g focus-events on
-# Agents thrash pane titles (spinners); keep names stable + block OSC title updates.
-set -g automatic-rename off
-set -g allow-rename off
-set -g allow-set-title off
-set -g set-titles off
-
-set -g default-terminal "tmux-256color"
-set -as terminal-overrides ",xterm-256color:RGB,tmux-256color:RGB"
-
-# Windows/panes start at 1
-set -g base-index 1
-setw -g pane-base-index 1
-
-# ===== Prefix: Ctrl-a =====
+# Prefix Ctrl-a  ·  Caps+A when Caps Lock → Control
+# Zoom: prefix z   ·  tiled 2×2: prefix Z   ·  hop: arrows or hjkl
 unbind C-b
 set -g prefix C-a
 bind C-a send-prefix
-
-bind r source-file ~/.tmux.conf \; display-message "tmux config reloaded"
-
-# ===== Splits open in the current pane's dir =====
-bind | split-window -h -c "#{pane_current_path}"
-bind - split-window -v -c "#{pane_current_path}"
-bind c new-window -c "#{pane_current_path}"
-
-# ===== Vi mode + vim pane nav/resize =====
-setw -g mode-keys vi
-bind h select-pane -L
-bind j select-pane -D
-bind k select-pane -U
-bind l select-pane -R
-bind -r H resize-pane -L 5
-bind -r J resize-pane -D 5
-bind -r K resize-pane -U 5
-bind -r L resize-pane -R 5
-
-# vi-style copy → macOS clipboard
-bind -T copy-mode-vi v send -X begin-selection
-bind -T copy-mode-vi V send -X select-line
-bind -T copy-mode-vi y send -X copy-pipe-and-cancel "pbcopy"
-bind -T copy-mode-vi MouseDragEnd1Pane send -X copy-pipe-and-cancel "pbcopy"
-
-# ===== Plugins (TPM) =====
-set -g @plugin 'tmux-plugins/tpm'
-set -g @plugin 'catppuccin/tmux#v2.3.0'
-set -g @plugin 'tmux-plugins/tmux-sensible'
-set -g @plugin 'tmux-plugins/tmux-yank'
-set -g @plugin 'tmux-plugins/tmux-resurrect'
-set -g @plugin 'tmux-plugins/tmux-continuum'
-set -g @plugin 'laktak/extrakto'
-
-set -g @resurrect-capture-pane-contents 'off'
-set -g @continuum-restore 'on'
-set -g @continuum-save-interval '30'
-
-# ===== Catppuccin =====
-set -g @catppuccin_flavor "mocha"
-set -g @catppuccin_window_status_style "rounded"
-set -g @catppuccin_window_default_text " #{=/18/…:#{b:pane_current_path}}"
-set -g @catppuccin_window_current_text " #{=/18/…:#{b:pane_current_path}}"
-run '~/.tmux/plugins/tmux/catppuccin.tmux'
-
-# ===== Status bar =====
-set -g status-position bottom
-set -g status-interval 15
-set -g status-right-length 150
-set -g status-left-length 60
-set -g status-left "#{E:@catppuccin_status_session} "
-# git = custom dependency-free segment; dir = blue pill; clock = surface pill
-set -g status-right "#(~/.config/tmux/git-status.sh '#{pane_current_path}') "
-set -ga status-right "#[fg=#89b4fa,bg=default]#[fg=#11111b,bg=#89b4fa]  #{s|#{HOME}|~|:pane_current_path} #[fg=#89b4fa,bg=default] "
-set -ga status-right "#[fg=#585b70,bg=default]#[fg=#cdd6f4,bg=#585b70]  %H:%M #[fg=#585b70,bg=default]"
-
-# ===== Per-pane labels — only when a window is split =====
-set -g pane-border-format " #{?pane_active,#[fg=#94e2d5#,bold],#[fg=#6c7086]}#P #{pane_current_command}#[default] #[fg=#585b70]#{b:pane_current_path} "
-set -g pane-border-style "fg=#313244"
-set -g pane-active-border-style "fg=#94e2d5"
-set -g pane-border-status off
-set-hook -g window-layout-changed 'if -F "#{==:#{window_panes},1}" "set -w pane-border-status off" "set -w pane-border-status top"'
-
-set -g @extrakto_grab_area "window recent"
-
-# Block copy: prefix + C-p → fzf popup of joined scrollback, Enter copies clean to clipboard.
-bind C-p display-popup -E -w 90% -h 90% "tmux capture-pane -pJ -S -5000 | fzf --multi --no-sort --tac --bind 'ctrl-a:select-all' | pbcopy"
-
-run '~/.tmux/plugins/tpm/tpm'
-
-# Post-plugin overrides (tmux-sensible resets some of these otherwise).
-set -g status-interval 15
-set -g history-limit 20000
-set -g automatic-rename off
-set -g allow-rename off
-set -g allow-set-title off
-
-# Keep copy-mode readable and stop wheel-up from scrolling TUI apps.
-set -g mode-style "fg=#11111b,bg=#f9e2af,bold"
-bind -T root WheelUpPane select-pane -t= \; copy-mode -e -t=
-bind -T copy-mode-vi WheelUpPane select-pane -t= \; send-keys -X -t= -N 5 scroll-up
-bind -T copy-mode-vi WheelDownPane select-pane -t= \; send-keys -X -t= -N 5 scroll-down
-bind -T copy-mode WheelUpPane select-pane -t= \; send-keys -X -t= -N 5 scroll-up
-bind -T copy-mode WheelDownPane select-pane -t= \; send-keys -X -t= -N 5 scroll-down
+bind z resize-pane -Z
+bind Z select-layout tiled \; display-message "layout: tiled (2x2-friendly)"
+# status left shows yellow Z while zoomed:
+# set -g status-left "#{E:@catppuccin_status_session}#{?window_zoomed_flag, #[fg=#f9e2af bold]Z#[default],} "
 ```
+
+Full file also has: mouse on, 20k history, Catppuccin Mocha, continuum/resurrect,
+pane labels only when split, `prefix+T` pane naming, fzf block-copy (`prefix C-p`),
+and wheel → tmux copy-mode so agent TUIs don't steal scroll.
 
 **The custom git segment** (dependency-free; shows branch + clean/dirty + ahead/behind,
 and renders *nothing* outside a repo). Write `~/.config/tmux/git-status.sh` and
@@ -514,138 +475,117 @@ Run `gh auth login` once so the credential helper works.
 
 ## The AI-coding constellation — the actually-interesting part
 
-**What & why:** I don't use one AI tool, I use several, each in a lane, and they
-cross-check each other. This section explains the wiring so you can reproduce the *flow*,
-not just install binaries.
+**What & why:** I don't use one AI tool. I run several in **lanes**, often **side by
+side in tmux panes**, and they cross-check each other. Reproduce the *flow*, not just
+the binaries.
 
-### The tools & their lanes
+### The tools & their lanes (current)
 
 | Tool | Install | Lane I use it in |
 |------|---------|------------------|
-| **Claude Code** | `curl -fsSL https://claude.ai/install.sh \| bash` (or npm) | Primary driver: specs, reviews, orchestration, final judgment |
-| **Codex CLI** (OpenAI) | `brew install codex` | Implementation muscle — hand it a well-specified slice, it writes the code |
-| **Grok CLI** | grok installer (`~/.grok/bin` on PATH) | Adversary — attacks plans, steelmans the opposite (never agrees by default) |
-| **Cursor** (`cursor-agent`) | download from cursor.com | IDE-side edits + a third reviewer voice |
-| **Kimi** (`kimi`) | kimi-code installer | Occasional alt model |
-| **gbrain** | `bun install -g gbrain` (or the setup skill) | Persistent memory across every tool + session |
+| **Claude Code** | `curl -fsSL https://claude.ai/install.sh \| bash` | Primary orchestrator: specs, fleet, reviews, final judgment; agent teams on |
+| **Grok CLI** | grok installer (`~/.grok/bin` on PATH) | Default dual-loop partner; frames, awards, verifies; designated skeptic |
+| **Cursor** (`cursor-agent`) | cursor.com | **SPAR implementer** — writes the accepted edits (often driven as Grok-4.5) |
+| **Codex CLI** (OpenAI) | `brew install codex` | Implementation muscle for well-specified slices; alternate full runtime |
+| **gbrain** | `bun install -g gbrain` / `setup-gbrain` | Persistent memory across every tool + session (MCP) |
+| **gstack** | gstack install / `/gstack-upgrade` | Large shared skill suite on Claude (+ Codex mirrors) |
+| **Kimi / OpenCode** | optional installers | Occasional alt models / Pencil MCP experiments |
 
-### The core idea: lanes + cross-review
+### Physical layout
 
-The pattern that makes this work (learned the hard way running a two-agent flow):
+Four panes in one terminal is normal: Claude · Grok · Codex · shell. Hop with
+**Caps+A + arrows**, zoom with **Caps+A z**. See the multi-agent zoom section above.
 
-- **Claude specifies and reviews. Codex implements.** Don't make Claude hand-resolve a
-  trivial thing Codex is slow at, and don't make Codex reason about architecture Claude
-  already mapped. Right tool, right lane.
-- **Grok is the designated skeptic.** Before committing to a plan, send it to Grok framed
-  as *"attack this, steelman the opposite, sharpest case against."* A genuine second mind
-  poking holes beats one model agreeing with itself.
-- **Everything writes to gbrain** so the next session (any tool) has the context.
-- **Observability rule:** when you dispatch one agent from another headlessly, stream its
-  output to a logfile you can `tail -f` — never pipe through `tail` (buffers till exit),
-  and never fire-and-forget without a liveness timeout.
+### Two different things both called "SPAR"
 
-### How they actually talk to each other
+Do not conflate them — same name, different contracts:
 
-Two concrete wiring examples from my setup:
+| | **Grok SPAR** (default implement loop) | **Claude `/spar`** (adversarial spar) |
+|--|----------------------------------------|--------------------------------------|
+| Where | `~/.grok/skills/spar` + `~/.grok/AGENTS.md` | `~/.claude/skills/spar` |
+| Meaning | **S**cope · **P**unch · **A**ward · **R**ealize | Send a plan to Grok to **attack** it |
+| Who writes code | **Cursor** implements accepted items only | Nobody — review only |
+| Who decides | Grok ACCEPT / REJECT / DEFER | Claude reconciles Grok's attack |
+| When | Multi-file implement, refactor, PR-bound work | "Poke holes in this plan" |
 
-1. **`venicefable` (in the zsh section)** — Claude's Fable model, served by Venice,
-   driven through the *Codex* CLI. One shell function bridges provider + model + CLI.
+Grok SPAR hard defaults: **PR base = `develop`** unless you name another; one writer
+per file-set; skip for pure Q&A / one-line typos.
 
-2. **The `/spar` skill (Claude Code → Grok)** — a Claude Code skill that packages the
-   current plan and launches a Grok subagent as an adversary, then relays Grok's verdict
-   verbatim before Claude reconciles it. This is the "cross-review" pattern as a one-liner.
-   The skill body:
+### Lanes + cross-review (the pattern)
+
+- **Claude orchestrates** (and still implements when that's the right tool). Prefer
+  `/conserve-claude` when grunt work can go to Codex/Grok/Cursor.
+- **Grok × Cursor SPAR** is the default dual loop for non-trivial coding on the Grok
+  side: Grok frames → Cursor punches (review/plan) → Grok awards → Cursor implements →
+  Grok verifies.
+- **Codex** gets well-specified implementation slices; don't make it re-derive architecture
+  Claude already mapped.
+- **gbrain** holds cross-session memory — every tool with the MCP registered can recall.
+- **No AI authorship attribution** in commits/PRs — enforced by global `githooks`
+  (`make githooks`) plus prose in `~/.claude/CLAUDE.md` / `~/.grok/AGENTS.md` /
+  `~/.codex/AGENTS.md`.
+- **Observability:** headless dispatches stream to a logfile you can `tail -f` — never
+  pipe through `tail` (buffers till exit), never fire-and-forget without a liveness timeout.
+
+### Wiring examples
+
+1. **`venicefable` (zsh)** — Venice-hosted model driven through the Codex CLI; key in
+   Keychain (`my-openrouter-key`).
+2. **Claude `/spar` → Grok** — packages the conclusion, launches the Grok bridge as
+   adversary, relays the attack verbatim. Prompt frame:
 
    > SPAR / adversarial challenge. Do NOT agree by default. Attack the conclusion below
    > and steelman the opposite. Give the sharpest case AGAINST it.
-   > CONTEXT: `<background so Grok can reason without the session>`
-   > CONCLUSION TO ATTACK: `<the plan, stated plainly>`
-   > CHALLENGE: Where is this wrong? What does it assume? Name failure modes the author
-   > is discounting. Sharpest case against, under 400 words.
 
-   You can reproduce the *idea* in any tool: a saved prompt that sends your current
-   conclusion to a *different* model with an adversarial frame.
+3. **Grok SPAR → Cursor** — Grok's global default for multi-file work; Cursor is the
+   writer, Grok the adjudicator.
 
 ### The skill library — the actual muscle
 
-A **skill** is just a markdown file with a trigger phrase + a procedure. Any agent
-(Claude Code, Codex) reads it and follows it. Most of my leverage is here. Two sources:
+A **skill** is markdown with a trigger + procedure. Most leverage lives here.
 
-- **gstack** — an open skill suite (`/ship`, `/land-and-deploy`, `/review`,
-  `/investigate`, `/qa`, `/design-review`, `/spar`, `/careful`, `/freeze`, …). Installs
-  into both `~/.claude/skills/` and `~/.codex/skills/`; `/gstack-upgrade` keeps it current.
-- **My gbrain-published pack** — the 23 curated skills below, served from the brain so
-  every tool/machine shares them. These are the ones I actually reach for.
+| Source | Where it lands | What it is |
+|--------|----------------|------------|
+| **gstack** | `~/.claude/skills`, `~/.codex/skills` | `/ship`, `/review`, `/investigate`, `/qa`, `/design-review`, `/careful`, `/freeze`, … |
+| **Grok skills** | `~/.grok/skills` | SPAR, ponytail family, cursor bridge, design pack (`better-ui`, `apple-design`, …), first-share, imagine |
+| **gbrain-published** | brain + any MCP client | Cross-machine curated pack (orchestration, audit, design, fleet) |
+| **Cursor / agents** | `~/.cursor/skills*`, `~/.agents/skills` | IDE helpers, remotion, etc. |
 
-**The 23 I keep published (name → what it does → when it fires):**
+**Reach-for skills (illustrative — full live list is the appendix below, auto-synced):**
 
-*Orchestration & delegation*
-| Skill | Does | Fires on |
-|-------|------|----------|
-| `arbitrage` | Before writing any code, decides *which tool/lane* each piece of work runs in | auto, at planning time |
-| `codex-implement` | Hands a well-specified slice to Codex as a write-access subagent, verifies, opens a PR | "have codex implement/fix this" |
-| `grok-delegate-runtime` | Internal contract for calling the Grok bridge from Claude Code | (helper, used by `/spar`) |
-| `grok-run-output` | How to present Grok bridge output back verbatim | (helper) |
-| `factory` | One prompt → full vertical slice: 10 scoped agents, 3 human checkpoints, self-loops on failure | "factory", "ship feature end-to-end" |
-| `goal-prep` | Structured `/goal` intake for broad/stalled/vague work — Scout/Judge/Worker roles, rolling board | long-running or stuck work |
-| `conserve-claude` | Claude stays orchestrator/reviewer; heavy authoring + grunt work route to codex/grok subagents | "conserve claude", "don't burn Claude on this" |
+*Orchestration:* `arbitrage`, `codex-implement`, `conserve-claude`, `factory`, `goalbuddy`, Grok `spar`, Grok `cursor`  
+*Quality:* `thermo-nuclear-code-quality-review`, `tavisi-audit`, `deploy-preflight`, Grok `ponytail` / `ponytail-review`  
+*Design:* `design-system-forge`, `extract-design`, `taste-loop-sprint`, Grok `better-ui` / `first-share`  
+*Memory / ops:* `gbrain-recall`, `fleet-drive`
 
-*Review & quality*
-| Skill | Does | Fires on |
-|-------|------|----------|
-| `thermo-nuclear-code-quality-review` | Extremely strict maintainability audit — abstraction quality, giant files, spaghetti conditionals | "thermonuclear review", harsh audit |
-| `tavisi-audit` | Domain-specific audit/proof-validation (Tavisi-only, but a template for invariant-driven review) | changes touching custody/proof invariants |
-| `explain-diff-html` | Rich HTML explanation of a diff/branch/PR | "explain this change" |
-| `deploy-preflight` | Proves a web app builds from a *clean clone* and every env var/secret it references exists on the deploy target | before calling a frontend "done", "will this build on Vercel?" |
+**Fresh machine:**
 
-*Thinking & teaching*
-| Skill | Does | Fires on |
-|-------|------|----------|
-| `council` | Convene multi-persona deliberation (historical thinkers) for hard problems | complex decisions |
-| `grilling` | Relentlessly stress-tests your plan/idea | "grill this", "poke holes" |
-| `teach-session` | Turns a session/system into a top-down guided lesson with quizzes until you've mastered it | "teach me what we did", "help me understand X" |
+1. Install the CLIs you want (Claude, Grok, Codex, Cursor).
+2. Install gstack; run `/gstack-upgrade` periodically.
+3. Stand up your own gbrain (`setup-gbrain`) — never copy someone else's DB URL or keys.
+4. `make install` + Caps→Control + TPM for the terminal half.
 
-*Design & frontend*
-| Skill | Does | Fires on |
-|-------|------|----------|
-| `design-system-forge` | Forge a ratified, handoff-grade design system from real reference sites; anti-AI-slop pass | "design system", "design handoff" |
-| `extract-design` | Pull full design language from any URL → 8 files (tokens, Tailwind, shadcn, Figma vars, WCAG score) | "extract design", "design tokens" |
-| `frontend-design` | Guidance for distinctive, non-templated visual design | building new UI |
-| `frontend-slides` | Animation-rich HTML presentations, or convert a PPT | "build a deck/slides" |
-| `prototype` | Throwaway prototype to answer a design/state question | "sanity-check this UI/logic" |
-| `grilling-frontend-prototyping` | Converge a look through rounds of live prototypes + verdicts | UI taste iteration |
-| `taste-loop-sprint` | One-day design sprint: plan → outside-voice review → orthogonal live variants → verdicts → deck → deploy | "taste loop", "design sprint" |
-
-*Memory & fleet ops*
-| Skill | Does | Fires on |
-|-------|------|----------|
-| `gbrain-recall` | The gbrain operating manual — page/slug/wiki-link conventions, lock recovery, which query tool for which temporal question | gbrain errors, writing new pages, cross-session recall |
-| `fleet-drive` | Resumes the attended driver seat for the autonomous fleet: newest checkpoint → live-state verify → bounded monitor loop | "fleet drive" (Tavisi-only, but a template for babysitting any agent fleet) |
-
-**How to replicate the pack on a fresh machine:**
-
-1. Install gstack (covers most of the above + the `/ship`/`/review`/`/spar` workflow skills).
-2. For the gbrain-published pack: stand up your own brain (`setup-gbrain`), then publish
-   skills from it — any tool with the gbrain MCP registered can then `list_skills` /
-   `get_skill` and follow them, machine-independent.
-
-**The transferable principle even with zero of my tooling:** name your repeatable
-workflows as skills (trigger + procedure markdown), and keep a `tasks/lessons.md` per
-project that every agent reads at session start and appends to after any correction.
+**Transferable principle with zero of my tooling:** name repeatable workflows as skills
+(trigger + procedure), and keep project memory the agents actually read.
 
 ### Claude Code settings worth copying
 
-Two harness settings I run (in `~/.claude/settings.json`):
+In `~/.claude/settings.json`:
 
-- **Agent teams / parallel subagents on** — `"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"`
-  so one session can fan out independent work across subagents.
-- **A tight Bash allowlist** so read-only git/gh/ls/cat commands don't prompt every time.
-  (Your friend can generate their own from their transcripts rather than copy mine.)
+- **Agent teams** — `"CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"`
+- **Bash allowlist** for low-risk git/gh/ls so you aren't prompted constantly (generate
+  your own from transcripts; don't copy a foreign allowlist blindly)
+- **grok-build plugin** enabled when you want Claude → Grok bridge skills
 
-> **gbrain memory:** I run a *remote* gbrain (a hosted brain all my tools query over MCP).
-> For a fresh machine, the `setup-gbrain` skill spins up a **local** brain instead — start
-> there. Register it as an MCP server in each tool's config; then every session shares
-> memory. Don't copy my remote endpoint or bearer token — stand up your own.
+### Grok settings worth knowing
+
+In `~/.grok/config.toml` (yours will differ): vim mode, fullscreen TUI, SPAR as default
+via `AGENTS.md`. Disable/ignore skills you don't want (crypto audit packs, remotion, …)
+so the router stays sharp.
+
+> **gbrain:** stand up **your own** local brain via `setup-gbrain`. Register it as MCP in
+> each tool. Never copy another machine's database URL, API keys, or bearer tokens into
+> this repo — `sync.sh` is built to keep those out.
 
 ---
 
@@ -667,6 +607,10 @@ for t in claude codex grok cursor-agent gbrain; do command -v $t >/dev/null && e
 If the tmux status bar shows tofu boxes instead of glyphs → the terminal font isn't a
 Nerd Font. Fix that first; everything else is cosmetic-independent.
 
+Multi-agent zoom smoke test: split into four panes (`prefix |` / `prefix -`), hit
+`prefix Z` (tiled), hop with `prefix` + arrows, `prefix z` to zoom — status bar should
+show a yellow **Z** while zoomed.
+
 ---
 
 ## Secrets you must supply yourself (never in this file)
@@ -674,9 +618,10 @@ Nerd Font. Fix that first; everything else is cosmetic-independent.
 | What | Where it goes | How |
 |------|---------------|-----|
 | OpenRouter / Venice key | Keychain item `my-openrouter-key` | `security add-generic-password -a "$USER" -s my-openrouter-key -w '<<KEY>>'` |
+| Hetzner Cloud token | Keychain item `hcloud-token` | `security add-generic-password -a "$USER" -s hcloud-token -w '<<KEY>>'` then `export HCLOUD_TOKEN="$(security find-generic-password -a "$USER" -s hcloud-token -w)"` |
 | GitHub auth | `gh` credential store | `gh auth login` |
 | gbrain (if used) | each tool's MCP config | stand up your own local brain via `setup-gbrain` |
-| Any cloud tokens (Hetzner/Fly/etc.) | Keychain or your own env, **not** dotfiles | per-provider |
+| Any other cloud tokens | Keychain or your own env, **not** dotfiles | per-provider |
 
 That's the whole setup. Take the sections you want, skip the rest — it's designed to be
 à la carte.
@@ -722,7 +667,7 @@ Skills currently installed on this box (name — one-line description):
 - `document-release` — Post-ship documentation update. (gstack)
 - `explain-diff-html` — Use when the user asks for a rich explanation of a code change, diff, branch, or PR. Produces HTML output.
 - `extract-design` — Extract the full design language from any website URL. Produces 8 output files including AI-optimized markdown, visual HTML preview, Tailwin
-- `factory` — |
+- `factory` — Software factory — one prompt ships a vertical slice. Spawns 10 specialized
 - `fleet-drive` — Resume the attended fleet-driver seat for the Tavisi autonomous fleet on VM hareesh2. Reads the newest checkpoint, verifies live VM state, a
 - `freeze` — Restrict file edits to a specific directory for the session. (gstack)
 - `frontend-slides` — Create stunning, animation-rich HTML presentations from scratch or by converting PowerPoint files. Use when the user wants to build a presen
@@ -769,7 +714,8 @@ Skills currently installed on this box (name — one-line description):
 - `taste-loop-sprint` — Taste sprint that converges a surface's design through live prototypes and cross-model review, ending with a public link you walk a stakehol
 - `tavisi-audit` — Tavisi audit, implementation-review, maintainability-review, proof-validation, and test-planning workflow for collateralcore changes. Use wh
 - `tavisi-fleet-ops` — Diagnose, explain, repair, and improve Tavisi fleet operations across schedulers, services, locks, queues, workers, reviews, model lanes, op
-- `teach-session` — |
+- `teach-session` — Become a wise, patient, ruthlessly effective teacher who makes sure the human
+- `technical-brief` — Produce a technical/architectural brief as a clean mobile HTML page (plus .md source) that Hareesh can read on a phone and act on. Use when 
 - `thermo-nuclear-code-quality-review` — Run an extremely strict maintainability review for abstraction quality, giant files, and spaghetti-condition growth. Use for a thermo-nuclea
 - `unfreeze` — Clear the freeze boundary set by /freeze, allowing edits to all directories again. (gstack)
 
@@ -783,39 +729,39 @@ Skills currently installed on this box (name — one-line description):
 - `ethskills` — Use when a request involves Ethereum, the EVM, or blockchain systems. Applies to building, auditing, deploying, or interacting with smart co
 - `foundry-poc` — Generates foundry PoC for smart contracts to scientifically from no special privileges to funds lost. Focused on proof of concept for EVM us
 - `grok` — Use the locally installed xAI Grok CLI for a focused second opinion, read-only repository review, brainstorming pass, or adversarial critiqu
-- `gstack-autoplan` — |
-- `gstack-benchmark` — |
-- `gstack-browse` — |
-- `gstack-canary` — |
-- `gstack-careful` — |
-- `gstack-checkpoint` — |
-- `gstack-connect-chrome` — |
-- `gstack-cso` — |
-- `gstack-design-consultation` — |
-- `gstack-design-html` — |
-- `gstack-design-review` — |
-- `gstack-design-shotgun` — |
-- `gstack-document-release` — |
-- `gstack-freeze` — |
-- `gstack-guard` — |
-- `gstack-health` — |
-- `gstack-investigate` — |
-- `gstack-land-and-deploy` — |
-- `gstack-learn` — |
-- `gstack-office-hours` — |
-- `gstack-plan-ceo-review` — |
-- `gstack-plan-design-review` — |
-- `gstack-plan-eng-review` — |
-- `gstack-qa-only` — |
-- `gstack-qa` — |
-- `gstack-retro` — |
-- `gstack-review` — |
-- `gstack-setup-browser-cookies` — |
-- `gstack-setup-deploy` — |
-- `gstack-ship` — |
-- `gstack-unfreeze` — |
-- `gstack-upgrade` — |
-- `gstack` — |
+- `gstack-autoplan` — Auto-review pipeline — reads the full CEO, design, and eng review skills from disk
+- `gstack-benchmark` — Performance regression detection using the browse daemon. Establishes
+- `gstack-browse` — Fast headless browser for QA testing and site dogfooding. Navigate any URL, interact with
+- `gstack-canary` — Post-deploy canary monitoring. Watches the live app for console errors,
+- `gstack-careful` — Safety guardrails for destructive commands. Warns before rm -rf, DROP TABLE,
+- `gstack-checkpoint` — Save and resume working state checkpoints. Captures git state, decisions made,
+- `gstack-connect-chrome` — Launch real Chrome controlled by gstack with the Side Panel extension auto-loaded.
+- `gstack-cso` — Chief Security Officer mode. Infrastructure-first security audit: secrets archaeology,
+- `gstack-design-consultation` — Design consultation: understands your product, researches the landscape, proposes a
+- `gstack-design-html` — Design finalization: generates production-quality Pretext-native HTML/CSS.
+- `gstack-design-review` — Designer's eye QA: finds visual inconsistency, spacing issues, hierarchy problems,
+- `gstack-design-shotgun` — Design shotgun: generate multiple AI design variants, open a comparison board,
+- `gstack-document-release` — Post-ship documentation update. Reads all project docs, cross-references the
+- `gstack-freeze` — Restrict file edits to a specific directory for the session. Blocks Edit and
+- `gstack-guard` — Full safety mode: destructive command warnings + directory-scoped edits.
+- `gstack-health` — Code quality dashboard. Wraps existing project tools (type checker, linter,
+- `gstack-investigate` — Systematic debugging with root cause investigation. Four phases: investigate,
+- `gstack-land-and-deploy` — Land and deploy workflow. Merges the PR, waits for CI and deploy,
+- `gstack-learn` — Manage project learnings. Review, search, prune, and export what gstack
+- `gstack-office-hours` — YC Office Hours — two modes. Startup mode: six forcing questions that expose
+- `gstack-plan-ceo-review` — CEO/founder-mode plan review. Rethink the problem, find the 10-star product,
+- `gstack-plan-design-review` — Designer's eye plan review — interactive, like CEO and Eng review.
+- `gstack-plan-eng-review` — Eng manager-mode plan review. Lock in the execution plan — architecture,
+- `gstack-qa-only` — Report-only QA testing. Systematically tests a web application and produces a
+- `gstack-qa` — Systematically QA test a web application and fix bugs found. Runs QA testing,
+- `gstack-retro` — Weekly engineering retrospective. Analyzes commit history, work patterns,
+- `gstack-review` — Pre-landing PR review. Analyzes diff against the base branch for SQL safety, LLM trust
+- `gstack-setup-browser-cookies` — Import cookies from your real Chromium browser into the headless browse session.
+- `gstack-setup-deploy` — Configure deployment settings for /land-and-deploy. Detects your deploy
+- `gstack-ship` — Ship workflow: detect + merge base branch, run tests, review diff, bump VERSION,
+- `gstack-unfreeze` — Clear the freeze boundary set by /freeze, allowing edits to all directories
+- `gstack-upgrade` — Upgrade gstack to the latest version. Detects global vs vendored install,
+- `gstack` — Fast headless browser for QA testing and site dogfooding. Navigate pages, interact with
 - `guidelines-advisor` — Smart contract development advisor based on Trail of Bits' best practices. Analyzes codebase to generate documentation/specifications, revie
 - `mediabunny` — Multimedia handling with the Mediabunny library
 - `remotion-best-practices` — Best practices for Remotion
@@ -836,5 +782,71 @@ Skills currently installed on this box (name — one-line description):
 - `thermonuclear-code-quality-review` — Run a Codex-native extremely strict maintainability audit for current branches, PRs, or local diffs. Use when asked for thermonuclear code q
 - `tiny-auditor` — Audit codebase to uncover critical issues explicitly and certainly leading to loss of funds without false positives
 - `token-integration-analyzer` — Token integration and implementation analyzer based on Trail of Bits' token integration checklist. Analyzes token implementations for ERC20/
+
+**`~/.grok/skills`**
+
+- `animation-vocabulary` — Reverse-lookup glossary that turns a vague description of a web animation or motion effect into its exact term ("the bouncy thing when a pop
+- `apple-design` — Apple's approach to interface design and fluid, physical motion, translated for the web. Use when building or reviewing gesture-driven UI, s
+- `better-colors` — OKLCH color space for web projects. Convert hex/rgb/hsl to oklch, generate palettes, check contrast, handle gamut boundaries, and theme with
+- `better-typography` — Web typography from choosing fonts to spacing, wrapping and accessibility. Use when picking or pairing typefaces, configuring variable fonts
+- `better-ui` — Design engineering principles for making interfaces feel polished. Use when building UI components, reviewing frontend code, implementing an
+- `brand-site` — Build production-quality brand websites from live URLs, Instagram/screenshots,
+- `brandup-product-lead`
+- `check-work` — Check your work with a verification subagent that reviews diffs, runs builds
+- `code-judo-quality-review` — Run a native Codex extremely strict maintainability review for abstraction quality, giant files, spaghetti-condition growth, and dramatic st
+- `code-review` — Run an extremely strict maintainability review for abstraction quality, giant files, and spaghetti-condition growth. Use for a deep code qua
+- `create-skill` — Interactively create a new Grok skill (SKILL.md + optional scripts/references).
+- `cursor` — Headlessly invoke Cursor Agent from Grok for a second opinion, plan, or
+- `design-system-forge` — Forge a ratified, handoff-grade design system from real reference sites. Extract design language, cluster into token-backed archetypes, buil
+- `emil-design-eng` — This skill encodes Emil Kowalski's philosophy on UI polish, component design, animation decisions, and the invisible details that make softw
+- `ethskills` — Use when a request involves Ethereum, the EVM, or blockchain systems. Applies to building, auditing, deploying, or interacting with smart co
+- `extract-design` — Extract the full design language from any website URL. Produces 8 output files including AI-optimized markdown, visual HTML preview, Tailwin
+- `find-animation-opportunities` — Search a codebase or UI for places that don't animate but should, and reject everything that shouldn't. Read-only; it proposes motion with e
+- `first-share` — Artifact-first stakeholder ship loop: name the one human URL, walk the journey,
+- `foundry-poc` — Generates foundry PoC for smart contracts to scientifically from no special privileges to funds lost. Focused on proof of concept for EVM us
+- `help` — Grok documentation and configuration help. Use when users ask about
+- `hermes-runtime-research` — Run a Hermes ecosystem research loop against the Tavisi hermes-aleph runtime
+- `imagine` — How to use the image_gen and image_edit tool calls in Grok Build: when to
+- `improve-animations` — Survey a codebase's animation and motion code as a senior motion advisor, then produce a prioritized audit and self-contained implementation
+- `pick-ui-library` — Pick the right library for a given frontend task from a curated, opinionated list — numbers, OTP inputs, charts, command menus, virtualizati
+- `ponytail-audit` — Whole-repo audit for over-engineering. Like ponytail-review, but scans the
+- `ponytail-debt` — Harvest every `ponytail:` comment in the codebase into a debt ledger, so the
+- `ponytail-gain` — Show ponytail's measured impact as a compact scoreboard: less code, less
+- `ponytail-help` — Quick-reference card for all ponytail modes, skills, and commands.
+- `ponytail-review` — Code review focused exclusively on over-engineering. Finds what to delete:
+- `ponytail` — Forces the laziest solution that actually works, simplest, shortest, most
+- `review-animations` — Reviews animation and motion code against a high craft bar derived from Emil Kowalski's design engineering philosophy. Default to flagging; 
+- `smart-contract-audit` — Comprehensive smart contract security audit framework with multi-expert analysis. Use for full audits of Ethereum / EVM Solidity and Vyper, 
+- `spar` — SPAR — Grok×Cursor adversarial default. Scope·Punch·Award·Realize. Auto-use for
+- `tavisi-audit` — Tavisi-specific audit, implementation-review, maintainability-review, proof-validation, and test-planning workflow for collateralcore change
+- `tavisi-design` — Use this skill to generate well-branded interfaces and assets for Tavisi, either for production or throwaway prototypes/mocks/etc. Contains 
+- `thermo-nuclear-code-quality-review` — Run Codex-native extremely strict maintainability audit for current branches, PRs, and local diffs. Use when asked for thermo-nuclear review
+- `tiny-auditor` — Audit codebase to uncover critical issues explicitly and certainly leading to loss of funds without false positives
+
+**`~/.cursor/skills`**
+
+- `mediabunny` — Multimedia handling with the Mediabunny library
+- `remotion-best-practices` — Best practices for Remotion
+- `remotion-captions` — Dealing with captions in Remotion
+- `remotion-create` — Creating a new Remotion video
+- `remotion-docs` — Search and fetch Remotion documentation pages
+- `remotion-interactivity` — Best practices for writing Remotion animations that stay intuitive for agents and editable in Remotion Studio Visual Mode.
+- `remotion-markup` — Best practices for writing Remotion React Markup
+- `remotion-render` — Best practices for rendering videos
+- `remotion-saas` — Building video apps with Remotion - framework, rendering and Player advice
+
+**`~/.agents/skills`**
+
+- `diagram-design` — Create technical and product diagrams — architecture, IT current-state, flowchart, sequence, state machine, ER / data model, timeline, swiml
+- `find-skills` — Helps users discover and install agent skills when they ask questions like "how do I do X", "find a skill for X", "is there a skill that can
+- `mediabunny` — Multimedia handling with the Mediabunny library
+- `remotion-best-practices` — Best practices for Remotion
+- `remotion-captions` — Dealing with captions in Remotion
+- `remotion-create` — Creating a new Remotion video
+- `remotion-docs` — Search and fetch Remotion documentation pages
+- `remotion-interactivity` — Best practices for writing Remotion animations that stay intuitive for agents and editable in Remotion Studio Visual Mode.
+- `remotion-markup` — Best practices for writing Remotion React Markup
+- `remotion-render` — Best practices for rendering videos
+- `remotion-saas` — Building video apps with Remotion - framework, rendering and Player advice
 
 <!-- SKILLS:END -->

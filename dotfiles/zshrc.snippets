@@ -21,20 +21,32 @@ source $(brew --prefix)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zs
 # --- completions ---
 autoload -Uz compinit && compinit -C
 
+# --- agent CLIs on PATH (adjust if yours land elsewhere) ---
+export PATH="$HOME/.grok/bin:$HOME/.local/bin:$PATH"
+
 # --- THE non-obvious one: hand mouse-scroll to tmux for agent TUIs ---
 # Claude Code (and similar) use the alt-screen buffer and fight tmux for scroll,
 # corrupting the display. Inside tmux, let tmux own scroll entirely.
 [ -n "$TMUX" ] && export CLAUDE_CODE_DISABLE_MOUSE=1
 
-# --- tmux cheat sheet (prefix = Ctrl-a) ---
-# Sessions:   tmux new -s name | tmux ls | tmux attach -t name | prefix d (detach)
-# Windows:    prefix c (new) | prefix n/p (next/prev) | prefix 0-9 | prefix , (rename)
-# Panes:      prefix | / - (split) | prefix h j k l (move) | prefix H J K L (resize) | prefix z (zoom)
-# Copy mode:  prefix [ (enter) | v (select) | y (yank→clipboard) | prefix C-p (fzf clean copy)
-# Misc:       prefix r (reload) | prefix ? (all keybinds)
+# --- tmux multi-agent workflow (prefix = Ctrl-a; Caps Lock → Control on this Mac) ---
+# Prefix:     Caps+A  (System Settings → Keyboard → Modifier Keys: Caps Lock = Control)
+# Hop panes:  prefix then arrows  OR  h/j/k/l  OR  click the pane
+# Zoom:       prefix then z   (full-screen the active agent; again to leave)
+# 2×2 grid:   split into 4 panes, then prefix then Z  (tiled layout)
+# Windows:    prefix c (new) | n/p (next/prev) | 0-9 | , (rename)
+# Splits:     prefix | (horizontal) | - (vertical)
+# Copy:       prefix [  then v/y  |  prefix C-p (fzf clean multi-line copy)
+# Misc:       prefix r (reload) | prefix T (name pane) | prefix ? (all binds)
+
+# --- Secrets belong in Keychain, never inline. ---
+# Store once:
+#   security add-generic-password -a "$USER" -s hcloud-token -w '<<YOUR_HCLOUD_TOKEN>>'
+#   security add-generic-password -a "$USER" -s my-openrouter-key -w '<<YOUR_OPENROUTER_KEY>>'
+# Load at shell start:
+# export HCLOUD_TOKEN="$(security find-generic-password -a "$USER" -s hcloud-token -w 2>/dev/null)"
 
 # --- Optional: run Codex against a Venice-hosted model. Supply your OWN key. ---
-#   security add-generic-password -a "$USER" -s my-openrouter-key -w '<<YOUR_OPENROUTER_KEY>>'
 venicefable() {
   local k; k="$(security find-generic-password -a "$USER" -s my-openrouter-key -w 2>/dev/null)"
   [ -z "$k" ] && { print -u2 "venicefable: missing Keychain item my-openrouter-key"; return 1; }
@@ -46,9 +58,6 @@ venicefable() {
     -c 'model_providers.venice.requires_openai_auth=true' "$@"
 }
 alias vfable=venicefable
-
-# --- Secrets belong in Keychain, never inline. Example pattern: ---
-#   export SOME_TOKEN="$(security find-generic-password -a "$USER" -s some-service -w)"
 
 # --- yazi: file tree in the tmux pane. `y` cds to last dir on quit (`Q` quits without cd). ---
 # Needs: brew install yazi fd zoxide   (glow is already in the handy-utilities brew line)
@@ -65,3 +74,4 @@ function y() {
 }
 
 eval "$(zoxide init zsh)"
+

@@ -2,7 +2,7 @@
 # sync.sh — pull my CURRENT configs off this box back into the repo, scrubbed.
 # This is how mydotfiles periodically absorbs whatever I've tweaked. It:
 #   1. copies live dotfiles through the secret redactor into dotfiles/
-#   2. regenerates the skill catalog (from ~/.claude/skills + ~/.codex/skills) between markers in README.md
+#   2. regenerates the skill catalog (claude + codex + grok + optional cursor/agents)
 #   3. runs the hard secret scan and ABORTS if anything leaks
 #   4. stages changes — but does NOT commit or push (that's your call)
 #
@@ -12,8 +12,9 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 D="$REPO/dotfiles"
 SCRUB="$REPO/scripts/scrub.sh"
 
-# Resolve symlinks (macOS has no readlink -f). After `make install`, live
-# paths are links into the repo — skip those so we don't clobber via same inode.
+# Resolve symlinks to a canonical path (macOS has no readlink -f). After
+# `make install`, live paths are links into the repo — skip those so we
+# don't clobber via same inode.
 realpath_of() {
   python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$1"
 }
@@ -22,6 +23,8 @@ copy() { # copy <live> <repo-relative-dest>
   local live="$1" dest="$D/$2" tmp
   [ -f "$live" ] || { echo "skip (missing): $live"; return; }
   mkdir -p "$(dirname "$dest")"
+  # After `make install`, live paths are symlinks into the repo. Always write via
+  # temp so we never open dest for write before finishing the read (same inode).
   if [ "$(realpath_of "$live")" = "$(realpath_of "$dest")" ]; then
     echo "skip (already linked into repo): $live"
     return
@@ -39,17 +42,44 @@ copy "$HOME/.gitignore_global"          "gitignore_global"
 copy "$HOME/.config/tmux/git-status.sh" "config-tmux/git-status.sh"
 chmod +x "$D/config-tmux/git-status.sh" 2>/dev/null || true
 
-# Ghostty: the live config sits in macOS Application Support; strip Ghostty's
-# auto-generated template banner (comments/blanks) so the repo keeps only real settings.
-ghostty_live="$HOME/Library/Application Support/com.mitchellh.ghostty/config"
-if [ -f "$ghostty_live" ]; then
+# Ghostty: prefer macOS Application Support, fall back to XDG. Strip template
+# banners (comments/blanks) so the repo keeps only real settings.
+ghostty_live=""
+for candidate in \
+  "$HOME/Library/Application Support/com.mitchellh.ghostty/config" \
+  "$HOME/.config/ghostty/config"
+do
+  if [ -f "$candidate" ]; then ghostty_live="$candidate"; break; fi
+done
+if [ -n "$ghostty_live" ]; then
   mkdir -p "$D/ghostty"
-  grep -vE '^[[:space:]]*(#|$)' "$ghostty_live" | "$SCRUB" redact > "$D/ghostty/config"
-  echo "synced $ghostty_live -> dotfiles/ghostty/config (comments stripped)"
+  ghostty_dest="$D/ghostty/config"
+  if [ "$(realpath_of "$ghostty_live")" = "$(realpath_of "$ghostty_dest")" ]; then
+    # Linked into repo: keep content; only strip comments if the file still has a template banner.
+    if grep -qE '^[[:space:]]*#' "$ghostty_dest" 2>/dev/null; then
+      tmp="$(mktemp)"
+      grep -vE '^[[:space:]]*(#|$)' "$ghostty_dest" | "$SCRUB" redact > "$tmp"
+      mv "$tmp" "$ghostty_dest"
+      echo "stripped comments in linked ghostty config"
+    else
+      echo "skip (already linked into repo): $ghostty_live"
+    fi
+  else
+    tmp="$(mktemp)"
+    # grep exits 1 when every line is a comment — don't abort under pipefail
+    { grep -vE '^[[:space:]]*(#|$)' "$ghostty_live" || true; } | "$SCRUB" redact > "$tmp"
+    mv "$tmp" "$ghostty_dest"
+    echo "synced $ghostty_live -> dotfiles/ghostty/config (comments stripped)"
+  fi
 else
-  echo "skip (missing): $ghostty_live"
+  echo "skip (missing): ghostty config"
 fi
-copy "$HOME/.config/ghostty/themes/ayu-dark" "ghostty/themes/ayu-dark"
+# Theme: XDG first (install links both), then App Support.
+if [ -f "$HOME/.config/ghostty/themes/ayu-dark" ]; then
+  copy "$HOME/.config/ghostty/themes/ayu-dark" "ghostty/themes/ayu-dark"
+elif [ -f "$HOME/Library/Application Support/com.mitchellh.ghostty/themes/ayu-dark" ]; then
+  copy "$HOME/Library/Application Support/com.mitchellh.ghostty/themes/ayu-dark" "ghostty/themes/ayu-dark"
+fi
 copy "$HOME/.config/yazi/yazi.toml"          "yazi/yazi.toml"
 copy "$HOME/.config/yazi/keymap.toml"        "yazi/keymap.toml"
 copy "$HOME/.config/yazi/package.toml"       "yazi/package.toml"
@@ -58,13 +88,34 @@ copy "$HOME/.config/yazi/package.toml"       "yazi/package.toml"
 #       Curate dotfiles/zshrc.snippets and dotfiles/gitconfig.template by hand.
 
 # --- 2. regenerate the skill catalog between markers in README.md ---
+# Prefer SKILL.md description; fall back to first non-empty prose line for
+# multi-line YAML descriptions (common in Grok skills).
+skill_desc() {
+  local skill_md="$1" desc
+  desc="$(sed -nE 's/^description:[[:space:]]*//p' "$skill_md" | head -1 | sed -E 's/^["'\'']//; s/["'\'']$//' | cut -c1-140 || true)"
+  if [ -z "$desc" ] || [ "$desc" = ">" ] || [ "$desc" = "|" ]; then
+    desc="$(awk '
+      /^description:[[:space:]]*[>|]?[[:space:]]*$/ {grab=1; next}
+      grab && /^[[:space:]]+[A-Za-z]/ { sub(/^[[:space:]]+/, ""); print; exit }
+      grab && /^[a-zA-Z0-9_-]+:/ { exit }
+    ' "$skill_md" | cut -c1-140 || true)"
+  fi
+  printf '%s' "$desc"
+}
+
 gen_skills() {
   echo '<!-- SKILLS:BEGIN (auto-generated by scripts/sync.sh — do not edit by hand) -->'
   echo
   echo "Skills currently installed on this box (name — one-line description):"
   echo
-  local dir base desc
-  for root in "$HOME/.claude/skills" "$HOME/.codex/skills"; do
+  local root dir base desc
+  for root in \
+    "$HOME/.claude/skills" \
+    "$HOME/.codex/skills" \
+    "$HOME/.grok/skills" \
+    "$HOME/.cursor/skills" \
+    "$HOME/.agents/skills"
+  do
     [ -d "$root" ] || continue
     echo "**\`~${root#$HOME}\`**"
     echo
@@ -73,7 +124,7 @@ gen_skills() {
       base="$(basename "$dir")"
       desc=""
       if [ -f "$dir/SKILL.md" ]; then
-        desc="$(sed -nE 's/^description:[[:space:]]*//p' "$dir/SKILL.md" | head -1 | sed -E 's/^"//; s/"$//' | cut -c1-140 || true)"
+        desc="$(skill_desc "$dir/SKILL.md")"
       fi
       if [ -n "$desc" ]; then echo "- \`$base\` — $desc"; else echo "- \`$base\`"; fi
     done
