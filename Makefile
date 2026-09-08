@@ -9,7 +9,9 @@ sync:               ## pull current configs off this box into the repo (scrubbed
 	./scripts/sync.sh
 
 scan:               ## hard secret-scan every tracked + dotfile (the commit gate)
-	./scripts/scrub.sh scan $$(git ls-files) dotfiles/* dotfiles/config-tmux/* dotfiles/ghostty/config dotfiles/ghostty/themes/* dotfiles/yazi/*
+	# find, not globs: a glob like dotfiles/* matches the *directory* dotfiles/bin
+	# and silently skips new files inside it. This walks everything.
+	./scripts/scrub.sh scan $$(git ls-files) $$(find dotfiles -type f)
 
 hook:               ## install the pre-commit secret-scan hook
 	ln -sf ../../scripts/pre-commit .git/hooks/pre-commit && chmod +x scripts/pre-commit && echo "pre-commit hook installed"
