@@ -36,7 +36,13 @@ mydotfiles/
 │   ├── gitconfig.template   (fill in your own name/email)
 │   ├── config-tmux/git-status.sh
 │   ├── ghostty/             (terminal config + ayu-dark theme)
-│   └── yazi/                (file tree + glow + ayu-dark flavor matching Ghostty)
+│   ├── yazi/                (file tree + glow + ayu-dark flavor matching Ghostty)
+│   └── bin/                 (CLI tools linked into ~/.local/bin)
+│       ├── tmux-sync            (toggle synchronize-panes from outside tmux)
+│       ├── snip                 (stash text under an alias, in ~/.snip/)
+│       └── snapview             (fzf-pick screenshots → paths on the clipboard)
+├── docs/
+│   └── tmux-cheatsheet.md   ← every keybinding in this setup, shareable
 ├── scripts/
 │   ├── install.sh       ← symlink dotfiles into ~ (backs up existing)
 │   ├── sync.sh          ← pull my current configs back in, scrubbed (the periodic update)
@@ -60,6 +66,73 @@ make sync-install  # optional: weekly launchd agent that runs sync (stages only,
 `sync.sh` is how mydotfiles stays current: it re-copies my live dotfiles through the secret
 redactor, regenerates the "skills on this box" appendix (Claude + Codex + Grok + Cursor +
 agents), hard-scans for leaks, and stages the diff — commit + push stay manual, always.
+
+## The three CLI tools
+
+`make install` links these into `~/.local/bin` (make sure that's on your PATH).
+Small, single-purpose, no dependencies beyond `fzf` and what macOS already ships.
+
+### `snapview` — screenshots → clipboard paths
+
+The friction it removes: you take a screenshot, then want to hand its **path** to
+an agent in the terminal. Normally that's a trip through Finder. Instead:
+
+```bash
+snapview            # fzf-pick from every screenshot, newest first; ENTER copies the paths
+snapview 20         # only consider the 20 newest
+snapview -c         # capture (interactive crosshair) first, then pick
+snapview -1         # skip the picker entirely, just copy the newest path
+snapview --heic     # include HEIC/HEIF (converted to a cached PNG so Preview opens them)
+snapview --dir DIR  # look somewhere else (or set $SNAPVIEW_DIR)
+snapview --check    # self-test against the configured directory
+```
+
+In the picker: `Tab` multi-selects · `Ctrl-o` opens in Preview.app · `Enter`
+copies · `Esc` bails. Also bound to tmux **`prefix + S`** as a popup over the
+current pane.
+
+It finds your screenshot folder on its own, in this order:
+`--dir` → `$SNAPVIEW_DIR` → macOS `screencapture location` → `~/Desktop`. Nothing
+to configure, and nothing hardcoded to my machine.
+
+> `pbynk` is an alias symlink to the same script — an older name kept working.
+
+### `snip` — stash text under an alias
+
+For the strings you retype constantly: a wifi password, a long flag, a block of
+boilerplate. Files are plain text in `~/.snip/`, so they're greppable and easy to
+delete.
+
+```bash
+snip wifi "hunter2"        # store (overwrites)
+pbpaste | snip notes -     # store stdin
+snip wifi                  # print it — and copy to the clipboard when on a tty
+snip ls                    # list aliases
+snip rm wifi               # delete
+```
+
+**Don't put real secrets in here** — it's plaintext on disk. Keychain is right
+there (`security add-generic-password`), see the zsh section below.
+
+### `tmux-sync` — broadcast typing, from outside tmux
+
+`prefix + e` toggles synchronize-panes, but that only works if you're *in* a
+pane. This does it from anywhere — a script, or an agent driving the session:
+
+```bash
+tmux-sync on | off | toggle
+```
+
+Outside tmux it targets the most recently attached session's active window, or
+you can point it explicitly with `TMUX_TARGET=session:window`.
+
+## Keybindings
+
+**[docs/tmux-cheatsheet.md](docs/tmux-cheatsheet.md)** is the complete list —
+panes, windows, sessions, all four copy/paste paths, plugins, and how to read the
+status bar. It's generated against a live `tmux list-keys`, marks which bindings
+are custom vs. stock, and is written to be handed to someone who has never used
+tmux.
 
 ---
 
@@ -674,10 +747,17 @@ Skills currently installed on this box (name — one-line description):
 **`~/.claude/skills`**
 
 - `_gstack-command` — Router for the gstack skill suite. (gstack)
+- `adversarial-spar` — Adversarial spar: send a plan/decision/conclusion to Grok to be attacked, not validated. Grok steelmans the opposite and returns the sharpes
+- `animation-vocabulary` — Reverse-lookup glossary that turns a vague description of a web animation or motion effect into its exact term ("the bouncy thing when a pop
+- `apple-design` — Apple's approach to interface design and fluid, physical motion, translated for the web. Use when building or reviewing gesture-driven UI, s
 - `arbitrage` — Always active when coding in a Claude (Fable) session. Triggers whenever implementation work is being planned, scoped, or about to start — b
 - `autoplan` — Auto-review pipeline — reads the full CEO, design, eng, and DX review skills from disk and runs them sequentially with auto-decisions using 
 - `benchmark-models` — Cross-model benchmark for gstack skills. (gstack)
 - `benchmark` — Performance regression detection using the browse daemon. (gstack)
+- `better-colors` — OKLCH color space for web projects. Convert hex/rgb/hsl to oklch, generate palettes, check contrast, handle gamut boundaries, and theme with
+- `better-typography` — Web typography from choosing fonts to spacing, wrapping and accessibility. Use when picking or pairing typefaces, configuring variable fonts
+- `better-ui` — Design engineering principles for making interfaces feel polished. Use when building UI components, reviewing frontend code, implementing an
+- `brainstorm` — Multi-source creative brainstorm for names, mottos, titles, product labels,
 - `browse` — Fast headless browser for QA testing and site dogfooding. (gstack)
 - `canary` — Post-deploy canary monitoring. (gstack)
 - `careful` — Safety guardrails for destructive commands. (gstack)
@@ -695,16 +775,18 @@ Skills currently installed on this box (name — one-line description):
 - `design-html` — Design finalization: generates production-quality Pretext-native HTML/CSS. (gstack)
 - `design-review` — Designer's eye QA: finds visual inconsistency, spacing issues, hierarchy problems, AI slop patterns, and slow interactions — then fixes them
 - `design-shotgun` — Design shotgun: generate multiple AI design variants, open a comparison board, collect structured feedback, and iterate. (gstack)
-- `design-system-forge` — Forge a ratified, handoff-grade design system from real reference sites - extract design language, cluster into token-backed archetypes, bui
+- `design-system-forge` — Forge a ratified, handoff-grade design system from real reference sites. Extract design language, cluster into token-backed archetypes, buil
 - `devex-review` — Live developer experience audit. (gstack)
 - `diagram-design` — Create technical and product diagrams — architecture, IT current-state, flowchart, sequence, state machine, ER / data model, timeline, swiml
 - `diagram` — Turn an English description (or mermaid source) into a diagram triplet: the source, an editable .excalidraw file you can open (gstack)
-- `dispatch-loop` — Compatibility trigger for exactly one installed Tavisi durable-scheduler pass.
+- `doc` — USE FOR EVERY DOCUMENT HAREESH ASKS FOR. Any request to write something up, explain or document a system, brief him, summarise findings, pro
 - `document-generate` — Generate missing documentation from scratch for a feature, module, or entire project. (gstack)
 - `document-release` — Post-ship documentation update. (gstack)
+- `emil-design-eng` — This skill encodes Emil Kowalski's philosophy on UI polish, component design, animation decisions, and the invisible details that make softw
 - `explain-diff-html` — Use when the user asks for a rich explanation of a code change, diff, branch, or PR. Produces HTML output.
 - `extract-design` — Extract the full design language from any website URL. Produces 8 output files including AI-optimized markdown, visual HTML preview, Tailwin
 - `factory` — Software factory — one prompt ships a vertical slice. Spawns 10 specialized
+- `find-animation-opportunities` — Search a codebase or UI for places that don't animate but should, and reject everything that shouldn't. Read-only; it proposes motion with e
 - `fleet-drive` — Resume the attended fleet-driver seat for the Tavisi autonomous fleet on VM hareesh2. Reads the newest checkpoint, verifies live VM state, a
 - `freeze` — Restrict file edits to a specific directory for the session. (gstack)
 - `frontend-slides` — Create stunning, animation-rich HTML presentations from scratch or by converting PowerPoint files. Use when the user wants to build a presen
@@ -712,10 +794,12 @@ Skills currently installed on this box (name — one-line description):
 - `goalbuddy` — Goal Prep for GoalBuddy. Use for broad, long-running, stalled, vague, detailed, planned, or unhealthy Codex or Claude Code work that needs a
 - `grilling-frontend-prototyping` — Converge on a frontend look through rounds of prototypes and grilling verdicts. Use when the user wants to iterate on UI/visual taste agains
 - `grilling` — Grill the user relentlessly about a plan, decision, or idea. Use when the user wants to stress-test their thinking, or uses any 'grill' trig
+- `grok-search` — Route web and X (Twitter) research through the local xAI Grok CLI headlessly.
 - `gstack-upgrade` — Upgrade gstack to the latest version.
 - `gstack` — Router for the gstack skill suite. (gstack)
 - `guard` — Full safety mode: destructive command warnings + directory-scoped edits. (gstack)
 - `health` — Code quality dashboard. (gstack)
+- `improve-animations` — Survey a codebase's animation and motion code as a senior motion advisor, then produce a prioritized audit and self-contained implementation
 - `investigate` — Systematic debugging with root cause investigation. (gstack)
 - `ios-clean` — Remove the DebugBridge SPM package and all #if DEBUG wiring from an iOS app. (gstack)
 - `ios-design-review` — Visual design audit for iOS apps on real hardware. (gstack)
@@ -726,47 +810,116 @@ Skills currently installed on this box (name — one-line description):
 - `landing-report` — Read-only queue dashboard for workspace-aware ship. (gstack)
 - `learn` — Manage project learnings.
 - `make-pdf` — Turn any markdown file into a publication-quality PDF. (gstack)
+- `memory-leak-audit` — Audit code for memory leaks and disposable issues. Use when reviewing event listeners, DOM handlers, lifecycle callbacks, or fixing leak rep
+- `memory-leak-debugging` — Diagnoses and resolves memory leaks in JavaScript/Node.js applications. Use when a user reports high memory usage, OOM errors, or wants to c
+- `memory-leak-detection` — Detect and fix memory leaks using heap snapshots, memory profiling, and leak
 - `office-hours` — YC Office Hours — two modes. (gstack)
 - `open-gstack-browser` — Launch GStack Browser — AI-controlled Chromium with the sidebar extension baked in.
 - `pair-agent` — Pair a remote AI agent with your browser. (gstack)
+- `pdwn-anti-slop` — writing patterns. Activates on any writing task — tweets, emails, articles,
+- `pdwn-approach` — Triggers: /pdwn-approach, pdwn approach, padawan padawan approach.
+- `pdwn-arxiv` — Triggers: /pdwn-arxiv, pdwn arxiv, padawan arxiv.
+- `pdwn-audience-briefs` — Triggers: /pdwn-audience-briefs, pdwn audience-briefs, padawan audience specific briefs.
+- `pdwn-blogwatcher` — Triggers: /pdwn-blogwatcher, pdwn blogwatcher, padawan blogwatcher.
+- `pdwn-brief-viewer` — Triggers: /pdwn-brief-viewer, pdwn brief-viewer, padawan brief viewer artifact delivery.
+- `pdwn-brief` — Triggers: /pdwn-brief, pdwn brief, padawan brief standard.
+- `pdwn-checkpoint-research` — Triggers: /pdwn-checkpoint-research, pdwn checkpoint-research, padawan checkpointed handoff research.
+- `pdwn-citations` — Triggers: /pdwn-citations, pdwn citations, padawan grounded citations.
+- `pdwn-city-radar` — Triggers: /pdwn-city-radar, pdwn city-radar, padawan city radar source ingestion.
+- `pdwn-delivery` — Triggers: /pdwn-delivery, pdwn delivery, padawan research delivery.
+- `pdwn-export-kit` — Triggers: /pdwn-export-kit, pdwn export-kit, padawan external research prompt kits.
+- `pdwn-founder-handoff` — with live-radar market signal. Triggers: /pdwn-founder-handoff, pdwn founder-handoff,
+- `pdwn-heavy-music` — Triggers: /pdwn-heavy-music, pdwn heavy-music, padawan heavy music scouting.
+- `pdwn-human-text` — Triggers: /pdwn-human-text, pdwn human-text, padawan human text layer reporting.
+- `pdwn-intent-briefs` — Triggers: /pdwn-intent-briefs, pdwn intent-briefs, padawan intent aware research briefs.
+- `pdwn-llm-wiki` — Triggers: /pdwn-llm-wiki, pdwn llm-wiki, padawan llm wiki.
+- `pdwn-manifesto` — Triggers: /pdwn-manifesto, pdwn manifesto, padawan manifesto briefs.
+- `pdwn-market` — Triggers: /pdwn-market, pdwn market, padawan market research briefs.
+- `pdwn-mobile-html` — Triggers: /pdwn-mobile-html, pdwn mobile-html, padawan mobile longform html.
+- `pdwn-multi` — Triggers: /pdwn-multi, pdwn multi, padawan multi perspective research synthesis.
+- `pdwn-music-scout` — Triggers: /pdwn-music-scout, pdwn music-scout, padawan music scouting for all vars.
+- `pdwn-narrative` — Triggers: /pdwn-narrative, pdwn narrative, padawan narrative briefings.
+- `pdwn-nyc` — Triggers: /pdwn-nyc, pdwn nyc, padawan stopscrolling nyc.
+- `pdwn-ops-layer` — Triggers: /pdwn-ops-layer, pdwn ops-layer, padawan personal operating layer.
+- `pdwn-paper-epub` — Triggers: /pdwn-paper-epub, pdwn paper-epub, padawan paper epub delivery.
+- `pdwn-paper-read` — Triggers: /pdwn-paper-read, pdwn paper-read, padawan research reading briefs.
+- `pdwn-paper-write` — Triggers: /pdwn-paper-write, pdwn paper-write, padawan research paper writing.
+- `pdwn-polymarket` — Triggers: /pdwn-polymarket, pdwn polymarket, padawan polymarket.
+- `pdwn-product-scout` — Triggers: /pdwn-product-scout, pdwn product-scout, padawan product scout briefs.
+- `pdwn-public-manifesto` — Triggers: /pdwn-public-manifesto, pdwn public-manifesto, padawan public manifesto briefs.
+- `pdwn-research` — source graph, mechanism synthesis, known/inferred/unknown, ranked paths, next move,
+- `pdwn-science-learn` — Triggers: /pdwn-science-learn, pdwn science-learn, padawan science learning briefs.
+- `pdwn-science-teach` — Triggers: /pdwn-science-teach, pdwn science-teach, padawan science teaching briefs.
+- `pdwn-skill-surface` — Triggers: /pdwn-skill-surface, pdwn skill-surface, padawan skill surface management.
+- `pdwn-source-frag-briefs` — Triggers: /pdwn-source-frag-briefs, pdwn source-frag-briefs, padawan source fragment briefs.
+- `pdwn-source-frag` — Triggers: /pdwn-source-frag, pdwn source-frag, padawan source fragment briefing.
+- `pdwn-surface-lane` — [pdwn private suite] Run a surface lane: messy love for a content shape into a shareable standalone product via sparred plans, phone-first d
+- `pdwn-sweeps` — Triggers: /pdwn-sweeps, pdwn sweeps, padawan recurring research sweeps.
+- `pdwn-synthesis` — Triggers: /pdwn-synthesis, pdwn synthesis, padawan synthesis research runs.
+- `pdwn-telegram` — Triggers: /pdwn-telegram, pdwn telegram, padawan telegram research operations.
+- `pdwn-x-seeds` — Triggers: /pdwn-x-seeds, pdwn x-seeds, padawan trusted briefing seeds.
+- `pdwn` — Claude. Use when /pdwn, "which pdwn skill", "padawan research suite",
 - `plan-ceo-review` — CEO/founder-mode plan review. (gstack)
 - `plan-design-review` — Designer's eye plan review — interactive, like CEO and Eng review. (gstack)
 - `plan-devex-review` — Interactive developer experience plan review. (gstack)
 - `plan-eng-review` — Eng manager-mode plan review. (gstack)
 - `plan-tune` — Self-tuning question sensitivity + developer psychographic for gstack (v1: observational). (gstack)
 - `prototype` — Build a throwaway prototype to answer a design question. Use when the user wants to sanity-check whether a state model or logic feels right,
+- `pwa-development` — Progressive Web Apps - service workers, caching strategies, offline, Workbox
+- `pwa-expert` — Progressive Web App development with Service Workers, offline support, and app-like behavior. Use for caching strategies, install prompts, p
 - `qa-only` — Report-only QA testing. (gstack)
 - `qa` — Systematically QA test a web application and fix bugs found. (gstack)
+- `react-component-performance` — Analyze and optimize React component performance issues (slow renders, re-render thrash, laggy lists, expensive computations). Use when aske
+- `react-performance-optimization` — React performance optimization patterns using memoization, code splitting, and efficient rendering strategies. Use when optimizing slow Reac
+- `react-performance-optimizer` — Optimize React apps for 60fps performance. Implements memoization, virtualization, code splitting, bundle optimization. Use for slow renders
+- `react-performance` — React and Next.js performance optimization patterns adapted from Vercel Engineering's React Best Practices (https://github.com/vercel-labs/a
 - `retro` — Weekly engineering retrospective. (gstack)
+- `review-animations` — Reviews animation and motion code against a high craft bar derived from Emil Kowalski's design engineering philosophy. Default to flagging; 
 - `review` — Pre-landing PR review. (gstack)
 - `scrape` — Pull data from a web page. (gstack)
 - `setup-browser-cookies` — Import cookies from your real Chromium browser into the headless browse session. (gstack)
 - `setup-deploy` — Configure deployment settings for /land-and-deploy.
 - `setup-gbrain` — Set up gbrain for this coding agent: install the CLI, initialize a local PGLite or Supabase brain, register MCP, capture per-remote trust po
+- `ship-loop` — High-quality ops/ship loop distilled from the Padawan performance pass:
 - `ship` — Ship workflow: detect + merge base branch, run tests, review diff, bump VERSION, update CHANGELOG, commit, push, create PR. (gstack)
+- `simplify` — Simplify and refine recently modified code for clarity and consistency. Use after writing code to improve readability without changing funct
 - `skillify` — Codify the most recent successful /scrape flow into a permanent browser-skill on disk. (gstack)
-- `spar` — Adversarial spar: send a plan/decision/conclusion to Grok to be attacked, not validated. Grok steelmans the opposite and returns the sharpes
+- `spar` — Run a Codex-orchestrated, Grok-adversarial Scope·Punch·Award·Realize review-and-fix loop. Use for multi-file implementation, refactoring, PR
 - `spec` — Turn vague intent into a precise, executable spec in five phases. (gstack)
+- `standup` — Hareesh's personal operating picture across everything he runs, not one project:
 - `sync-gbrain` — Keep gbrain current with this repo's code and refresh agent search guidance in CLAUDE.md. Wraps the gstack-gbrain-sync orchestrator with sta
 - `taste-loop-sprint` — Taste sprint that converges a surface's design through live prototypes and cross-model review, ending with a public link you walk a stakehol
 - `tavisi-audit` — Tavisi audit, implementation-review, maintainability-review, proof-validation, and test-planning workflow for collateralcore changes. Use wh
 - `tavisi-fleet-ops` — Diagnose, explain, repair, and improve Tavisi fleet operations across schedulers, services, locks, queues, workers, reviews, model lanes, op
+- `tavisi-standup` — Daily operating picture across tavisi-fleet-ops and collateralcore: six-metric
 - `teach-session` — Become a wise, patient, ruthlessly effective teacher who makes sure the human
-- `technical-brief` — Produce a technical/architectural brief as a clean mobile HTML page (plus .md source) that Hareesh can read on a phone and act on. Use when 
 - `thermo-nuclear-code-quality-review` — Run an extremely strict maintainability review for abstraction quality, giant files, and spaghetti-condition growth. Use for a thermo-nuclea
 - `unfreeze` — Clear the freeze boundary set by /freeze, allowing edits to all directories again. (gstack)
+- `vercel-react-best-practices` — React and Next.js performance optimization guidelines from Vercel Engineering. This skill should be used when writing, reviewing, or refacto
+- `web-design-guidelines` — Review UI code for Web Interface Guidelines compliance. Use when asked to "review my UI", "check accessibility", "audit design", "review UX"
 
 **`~/.codex/skills`**
 
+- `animation-vocabulary` — Reverse-lookup glossary that turns a vague description of a web animation or motion effect into its exact term ("the bouncy thing when a pop
+- `apple-design` — Apple's approach to interface design and fluid, physical motion, translated for the web. Use when building or reviewing gesture-driven UI, s
+- `better-colors` — OKLCH color space for web projects. Convert hex/rgb/hsl to oklch, generate palettes, check contrast, handle gamut boundaries, and theme with
+- `better-typography` — Web typography from choosing fonts to spacing, wrapping and accessibility. Use when picking or pairing typefaces, configuring variable fonts
+- `better-ui` — Design engineering principles for making interfaces feel polished. Use when building UI components, reviewing frontend code, implementing an
+- `brainstorm` — Multi-source creative brainstorm for names, mottos, titles, product labels,
 - `code-judo-quality-review` — Run a native Codex extremely strict maintainability review for abstraction quality, giant files, spaghetti-condition growth, and dramatic st
 - `codex-primary-runtime`
 - `council` — Convene the Council of High Intelligence in Codex when the user asks for /council, council deliberation, triads, duo debates, or multi-persp
-- `dispatch-loop` — Compatibility trigger for exactly one installed Tavisi durable-scheduler pass.
+- `cursor` — Headlessly invoke Cursor Agent from Grok for a second opinion, plan, or
+- `design-system-forge` — Forge a ratified, handoff-grade design system from real reference sites. Extract design language, cluster into token-backed archetypes, buil
+- `emil-design-eng` — This skill encodes Emil Kowalski's philosophy on UI polish, component design, animation decisions, and the invisible details that make softw
 - `entry-point-analyzer` — Analyzes smart contract codebases to identify state-changing entry points for security auditing. Detects externally callable functions that 
 - `ethskills` — Use when a request involves Ethereum, the EVM, or blockchain systems. Applies to building, auditing, deploying, or interacting with smart co
+- `extract-design` — Extract the full design language from any website URL. Produces 8 output files including AI-optimized markdown, visual HTML preview, Tailwin
+- `find-animation-opportunities` — Search a codebase or UI for places that don't animate but should, and reject everything that shouldn't. Read-only; it proposes motion with e
 - `foundry-poc` — Generates foundry PoC for smart contracts to scientifically from no special privileges to funds lost. Focused on proof of concept for EVM us
+- `grok-search` — Route web and X (Twitter) research through the local xAI Grok CLI headlessly.
 - `grok` — Use the locally installed xAI Grok CLI for a focused second opinion, read-only repository review, brainstorming pass, or adversarial critiqu
-- `gstack-autoplan` — Auto-review pipeline — reads the full CEO, design, and eng review skills from disk
+- `gstack-autoplan` — Auto-review pipeline — reads the full CEO, design, eng, and DX review skills from disk
 - `gstack-benchmark` — Performance regression detection using the browse daemon. Establishes
 - `gstack-browse` — Fast headless browser for QA testing and site dogfooding. Navigate any URL, interact with
 - `gstack-canary` — Post-deploy canary monitoring. Watches the live app for console errors,
@@ -798,8 +951,9 @@ Skills currently installed on this box (name — one-line description):
 - `gstack-ship` — Ship workflow: detect + merge base branch, run tests, review diff, bump VERSION,
 - `gstack-unfreeze` — Clear the freeze boundary set by /freeze, allowing edits to all directories
 - `gstack-upgrade` — Upgrade gstack to the latest version. Detects global vs vendored install,
-- `gstack` — Fast headless browser for QA testing and site dogfooding. Navigate pages, interact with
+- `gstack` — Router for the gstack skill suite. Sends any gstack request to the right skill
 - `guidelines-advisor` — Smart contract development advisor based on Trail of Bits' best practices. Analyzes codebase to generate documentation/specifications, revie
+- `improve-animations` — Survey a codebase's animation and motion code as a senior motion advisor, then produce a prioritized audit and self-contained implementation
 - `mediabunny` — Multimedia handling with the Mediabunny library
 - `remotion-best-practices` — Best practices for Remotion
 - `remotion-captions` — Dealing with captions in Remotion
@@ -809,11 +963,16 @@ Skills currently installed on this box (name — one-line description):
 - `remotion-markup` — Best practices for writing Remotion React Markup
 - `remotion-render` — Best practices for rendering videos
 - `remotion-saas` — Building video apps with Remotion - framework, rendering and Player advice
+- `review-animations` — Reviews animation and motion code against a high craft bar derived from Emil Kowalski's design engineering philosophy. Default to flagging; 
 - `secure-workflow-guide` — Guides through Trail of Bits' 5-step secure development workflow. Runs Slither scans, checks special features (upgradeability/ERC conformanc
+- `ship-loop` — High-quality ops/ship loop distilled from the Padawan performance pass:
 - `smart-contract-audit` — Comprehensive smart contract security audit framework with multi-expert analysis. Use for full audits of Ethereum / EVM Solidity and Vyper, 
+- `spar` — Run a Codex-orchestrated, Grok-adversarial Scope·Punch·Award·Realize review-and-fix loop. Use for multi-file implementation, refactoring, PR
 - `tavisi-audit` — Tavisi-specific audit, implementation-review, maintainability-review, proof-validation, and test-planning workflow for collateralcore change
 - `tavisi-dispatcher-codex` — Run the Tavisi fleet dispatcher from Codex. Codex is primary-eligible — it runs the FULL dispatcher pass when it holds the orchestrator chai
+- `tavisi-fleet-driver` — Drive or monitor the Tavisi fleet as an attended operator. Use only when the user explicitly says to drive or monitor the fleet, asks to tak
 - `tavisi-fleet-ops` — Diagnose, explain, repair, and improve Tavisi fleet operations across schedulers, services, locks, queues, workers, reviews, model lanes, op
+- `tavisi-standup` — Daily operating picture across tavisi-fleet-ops and collateralcore: six-metric
 - `teach-session` — Become a wise, patient, ruthlessly effective teacher for a coding session so the human deeply understands the problem, solution, design deci
 - `thermo-nuclear-code-quality-review` — Run Codex-native extremely strict maintainability audit for current branches, PRs, and local diffs. Use when asked for thermo-nuclear review
 - `thermonuclear-code-quality-review` — Run a Codex-native extremely strict maintainability audit for current branches, PRs, or local diffs. Use when asked for thermonuclear code q
@@ -827,12 +986,11 @@ Skills currently installed on this box (name — one-line description):
 - `better-colors` — OKLCH color space for web projects. Convert hex/rgb/hsl to oklch, generate palettes, check contrast, handle gamut boundaries, and theme with
 - `better-typography` — Web typography from choosing fonts to spacing, wrapping and accessibility. Use when picking or pairing typefaces, configuring variable fonts
 - `better-ui` — Design engineering principles for making interfaces feel polished. Use when building UI components, reviewing frontend code, implementing an
+- `brainstorm` — Multi-source creative brainstorm for names, mottos, titles, product labels,
 - `brand-site` — Build production-quality brand websites from live URLs, Instagram/screenshots,
 - `brandup-product-lead`
-- `check-work` — Check your work with a verification subagent that reviews diffs, runs builds
+- `brief-page` — Author paper-style brief HTML pages (Padawan / cr8 vision format): kicker, serif
 - `code-judo-quality-review` — Run a native Codex extremely strict maintainability review for abstraction quality, giant files, spaghetti-condition growth, and dramatic st
-- `code-review` — Run an extremely strict maintainability review for abstraction quality, giant files, and spaghetti-condition growth. Use for a deep code qua
-- `create-skill` — Interactively create a new Grok skill (SKILL.md + optional scripts/references).
 - `cursor` — Headlessly invoke Cursor Agent from Grok for a second opinion, plan, or
 - `design-system-forge` — Forge a ratified, handoff-grade design system from real reference sites. Extract design language, cluster into token-backed archetypes, buil
 - `emil-design-eng` — This skill encodes Emil Kowalski's philosophy on UI polish, component design, animation decisions, and the invisible details that make softw
@@ -841,24 +999,84 @@ Skills currently installed on this box (name — one-line description):
 - `find-animation-opportunities` — Search a codebase or UI for places that don't animate but should, and reject everything that shouldn't. Read-only; it proposes motion with e
 - `first-share` — Artifact-first stakeholder ship loop: name the one human URL, walk the journey,
 - `foundry-poc` — Generates foundry PoC for smart contracts to scientifically from no special privileges to funds lost. Focused on proof of concept for EVM us
-- `help` — Grok documentation and configuration help. Use when users ask about
+- `grok-search` — Route web and X (Twitter) research through the local xAI Grok CLI headlessly.
 - `hermes-runtime-research` — Run a Hermes ecosystem research loop against the Tavisi hermes-aleph runtime
-- `imagine` — How to use the image_gen and image_edit tool calls in Grok Build: when to
 - `improve-animations` — Survey a codebase's animation and motion code as a senior motion advisor, then produce a prioritized audit and self-contained implementation
+- `linear-board-sweep` — Periodic Linear board review and optimization for fleet operators: snapshot
+- `memory-leak-audit` — Audit code for memory leaks and disposable issues. Use when reviewing event listeners, DOM handlers, lifecycle callbacks, or fixing leak rep
+- `memory-leak-debugging` — Diagnoses and resolves memory leaks in JavaScript/Node.js applications. Use when a user reports high memory usage, OOM errors, or wants to c
+- `memory-leak-detection` — Detect and fix memory leaks using heap snapshots, memory profiling, and leak
+- `padawan-research` — source graph, mechanism synthesis, known/inferred/unknown, ranked paths, next move,
+- `pdwn-anti-slop` — writing patterns. Activates on any writing task — tweets, emails, articles,
+- `pdwn-approach` — Triggers: /pdwn-approach, pdwn approach, padawan padawan approach.
+- `pdwn-arxiv` — Triggers: /pdwn-arxiv, pdwn arxiv, padawan arxiv.
+- `pdwn-audience-briefs` — Triggers: /pdwn-audience-briefs, pdwn audience-briefs, padawan audience specific briefs.
+- `pdwn-blogwatcher` — Triggers: /pdwn-blogwatcher, pdwn blogwatcher, padawan blogwatcher.
+- `pdwn-brief-viewer` — Triggers: /pdwn-brief-viewer, pdwn brief-viewer, padawan brief viewer artifact delivery.
+- `pdwn-brief` — Triggers: /pdwn-brief, pdwn brief, padawan brief standard.
+- `pdwn-checkpoint-research` — Triggers: /pdwn-checkpoint-research, pdwn checkpoint-research, padawan checkpointed handoff research.
+- `pdwn-citations` — Triggers: /pdwn-citations, pdwn citations, padawan grounded citations.
+- `pdwn-city-radar` — Triggers: /pdwn-city-radar, pdwn city-radar, padawan city radar source ingestion.
+- `pdwn-delivery` — Triggers: /pdwn-delivery, pdwn delivery, padawan research delivery.
+- `pdwn-export-kit` — Triggers: /pdwn-export-kit, pdwn export-kit, padawan external research prompt kits.
+- `pdwn-founder-handoff` — with live-radar market signal. Triggers: /pdwn-founder-handoff, pdwn founder-handoff,
+- `pdwn-heavy-music` — Triggers: /pdwn-heavy-music, pdwn heavy-music, padawan heavy music scouting.
+- `pdwn-human-text` — Triggers: /pdwn-human-text, pdwn human-text, padawan human text layer reporting.
+- `pdwn-intent-briefs` — Triggers: /pdwn-intent-briefs, pdwn intent-briefs, padawan intent aware research briefs.
+- `pdwn-llm-wiki` — Triggers: /pdwn-llm-wiki, pdwn llm-wiki, padawan llm wiki.
+- `pdwn-manifesto` — Triggers: /pdwn-manifesto, pdwn manifesto, padawan manifesto briefs.
+- `pdwn-market` — Triggers: /pdwn-market, pdwn market, padawan market research briefs.
+- `pdwn-mobile-html` — Triggers: /pdwn-mobile-html, pdwn mobile-html, padawan mobile longform html.
+- `pdwn-multi` — Triggers: /pdwn-multi, pdwn multi, padawan multi perspective research synthesis.
+- `pdwn-music-scout` — Triggers: /pdwn-music-scout, pdwn music-scout, padawan music scouting for all vars.
+- `pdwn-narrative` — Triggers: /pdwn-narrative, pdwn narrative, padawan narrative briefings.
+- `pdwn-nyc` — Triggers: /pdwn-nyc, pdwn nyc, padawan stopscrolling nyc.
+- `pdwn-ops-layer` — Triggers: /pdwn-ops-layer, pdwn ops-layer, padawan personal operating layer.
+- `pdwn-paper-epub` — Triggers: /pdwn-paper-epub, pdwn paper-epub, padawan paper epub delivery.
+- `pdwn-paper-read` — Triggers: /pdwn-paper-read, pdwn paper-read, padawan research reading briefs.
+- `pdwn-paper-write` — Triggers: /pdwn-paper-write, pdwn paper-write, padawan research paper writing.
+- `pdwn-polymarket` — Triggers: /pdwn-polymarket, pdwn polymarket, padawan polymarket.
+- `pdwn-product-scout` — Triggers: /pdwn-product-scout, pdwn product-scout, padawan product scout briefs.
+- `pdwn-public-manifesto` — Triggers: /pdwn-public-manifesto, pdwn public-manifesto, padawan public manifesto briefs.
+- `pdwn-research` — source graph, mechanism synthesis, known/inferred/unknown, ranked paths, next move,
+- `pdwn-science-learn` — Triggers: /pdwn-science-learn, pdwn science-learn, padawan science learning briefs.
+- `pdwn-science-teach` — Triggers: /pdwn-science-teach, pdwn science-teach, padawan science teaching briefs.
+- `pdwn-skill-surface` — Triggers: /pdwn-skill-surface, pdwn skill-surface, padawan skill surface management.
+- `pdwn-source-frag-briefs` — Triggers: /pdwn-source-frag-briefs, pdwn source-frag-briefs, padawan source fragment briefs.
+- `pdwn-source-frag` — Triggers: /pdwn-source-frag, pdwn source-frag, padawan source fragment briefing.
+- `pdwn-sweeps` — Triggers: /pdwn-sweeps, pdwn sweeps, padawan recurring research sweeps.
+- `pdwn-synthesis` — Triggers: /pdwn-synthesis, pdwn synthesis, padawan synthesis research runs.
+- `pdwn-telegram` — Triggers: /pdwn-telegram, pdwn telegram, padawan telegram research operations.
+- `pdwn-upgrade` — Use when /pdwn-upgrade, "update pdwn", "re-ingest padawan kit", "refresh research skills".
+- `pdwn-x-seeds` — Triggers: /pdwn-x-seeds, pdwn x-seeds, padawan trusted briefing seeds.
+- `pdwn` — Grok. Use when /pdwn, "which pdwn skill", "padawan research suite",
 - `pick-ui-library` — Pick the right library for a given frontend task from a curated, opinionated list — numbers, OTP inputs, charts, command menus, virtualizati
 - `ponytail-audit` — Whole-repo audit for over-engineering. Like ponytail-review, but scans the
 - `ponytail-debt` — Harvest every `ponytail:` comment in the codebase into a debt ledger, so the
 - `ponytail-gain` — Show ponytail's measured impact as a compact scoreboard: less code, less
 - `ponytail-help` — Quick-reference card for all ponytail modes, skills, and commands.
 - `ponytail-review` — Code review focused exclusively on over-engineering. Finds what to delete:
-- `ponytail` — Forces the laziest solution that actually works, simplest, shortest, most
+- `ponytail` — HARD GLOBAL DEFAULT for all Grok work on this machine. Forces the laziest
+- `pwa-development` — Progressive Web Apps - service workers, caching strategies, offline, Workbox
+- `pwa-expert` — Progressive Web App development with Service Workers, offline support, and app-like behavior. Use for caching strategies, install prompts, p
+- `react-component-performance` — Analyze and optimize React component performance issues (slow renders, re-render thrash, laggy lists, expensive computations). Use when aske
+- `react-performance-optimization` — React performance optimization patterns using memoization, code splitting, and efficient rendering strategies. Use when optimizing slow Reac
+- `react-performance-optimizer` — Optimize React apps for 60fps performance. Implements memoization, virtualization, code splitting, bundle optimization. Use for slow renders
+- `react-performance` — React and Next.js performance optimization patterns adapted from Vercel Engineering's React Best Practices (https://github.com/vercel-labs/a
 - `review-animations` — Reviews animation and motion code against a high craft bar derived from Emil Kowalski's design engineering philosophy. Default to flagging; 
+- `session-checkpoint` — End multi-step sessions with a durable GitHub issue (or vault handoff) so a cold session can resume without chat history. Triggers: /session
+- `ship-loop` — High-quality ops/ship loop distilled from the Padawan performance pass:
+- `simplify` — Simplify and refine recently modified code for clarity and consistency. Use after writing code to improve readability without changing funct
 - `smart-contract-audit` — Comprehensive smart contract security audit framework with multi-expert analysis. Use for full audits of Ethereum / EVM Solidity and Vyper, 
-- `spar` — SPAR — Grok×Cursor adversarial default. Scope·Punch·Award·Realize. Auto-use for
+- `spar` — Run a Codex-orchestrated, Grok-adversarial Scope·Punch·Award·Realize review-and-fix loop. Use for multi-file implementation, refactoring, PR
+- `standup` — Hareesh's personal operating picture across everything he runs, not one project:
 - `tavisi-audit` — Tavisi-specific audit, implementation-review, maintainability-review, proof-validation, and test-planning workflow for collateralcore change
 - `tavisi-design` — Use this skill to generate well-branded interfaces and assets for Tavisi, either for production or throwaway prototypes/mocks/etc. Contains 
+- `tavisi-standup` — Daily operating picture: Hareesh-owned lanes as dense markdown with numbers
 - `thermo-nuclear-code-quality-review` — Run Codex-native extremely strict maintainability audit for current branches, PRs, and local diffs. Use when asked for thermo-nuclear review
 - `tiny-auditor` — Audit codebase to uncover critical issues explicitly and certainly leading to loss of funds without false positives
+- `vercel-react-best-practices` — React and Next.js performance optimization guidelines from Vercel Engineering. This skill should be used when writing, reviewing, or refacto
+- `web-design-guidelines` — Review UI code for Web Interface Guidelines compliance. Use when asked to "review my UI", "check accessibility", "audit design", "review UX"
 
 **`~/.cursor/skills`**
 
@@ -874,9 +1092,31 @@ Skills currently installed on this box (name — one-line description):
 
 **`~/.agents/skills`**
 
+- `animation-vocabulary` — Reverse-lookup glossary that turns a vague description of a web animation or motion effect into its exact term ("the bouncy thing when a pop
+- `apple-design` — Apple's approach to interface design and fluid, physical motion, translated for the web. Use when building or reviewing gesture-driven UI, s
+- `better-colors` — OKLCH color space for web projects. Convert hex/rgb/hsl to oklch, generate palettes, check contrast, handle gamut boundaries, and theme with
+- `better-typography` — Web typography from choosing fonts to spacing, wrapping and accessibility. Use when picking or pairing typefaces, configuring variable fonts
+- `better-ui` — Design engineering principles for making interfaces feel polished. Use when building UI components, reviewing frontend code, implementing an
+- `brainstorm` — Multi-source creative brainstorm for names, mottos, titles, product labels,
+- `cursor` — Headlessly invoke Cursor Agent from Grok for a second opinion, plan, or
+- `design-system-forge` — Forge a ratified, handoff-grade design system from real reference sites. Extract design language, cluster into token-backed archetypes, buil
 - `diagram-design` — Create technical and product diagrams — architecture, IT current-state, flowchart, sequence, state machine, ER / data model, timeline, swiml
+- `emil-design-eng` — This skill encodes Emil Kowalski's philosophy on UI polish, component design, animation decisions, and the invisible details that make softw
+- `extract-design` — Extract the full design language from any website URL. Produces 8 output files including AI-optimized markdown, visual HTML preview, Tailwin
+- `find-animation-opportunities` — Search a codebase or UI for places that don't animate but should, and reject everything that shouldn't. Read-only; it proposes motion with e
 - `find-skills` — Helps users discover and install agent skills when they ask questions like "how do I do X", "find a skill for X", "is there a skill that can
+- `grok-search` — Route web and X (Twitter) research through the local xAI Grok CLI headlessly.
+- `improve-animations` — Survey a codebase's animation and motion code as a senior motion advisor, then produce a prioritized audit and self-contained implementation
 - `mediabunny` — Multimedia handling with the Mediabunny library
+- `memory-leak-audit` — Audit code for memory leaks and disposable issues. Use when reviewing event listeners, DOM handlers, lifecycle callbacks, or fixing leak rep
+- `memory-leak-debugging` — Diagnoses and resolves memory leaks in JavaScript/Node.js applications. Use when a user reports high memory usage, OOM errors, or wants to c
+- `memory-leak-detection` — Detect and fix memory leaks using heap snapshots, memory profiling, and leak
+- `pwa-development` — Progressive Web Apps - service workers, caching strategies, offline, Workbox
+- `pwa-expert` — Progressive Web App development with Service Workers, offline support, and app-like behavior. Use for caching strategies, install prompts, p
+- `react-component-performance` — Analyze and optimize React component performance issues (slow renders, re-render thrash, laggy lists, expensive computations). Use when aske
+- `react-performance-optimization` — React performance optimization patterns using memoization, code splitting, and efficient rendering strategies. Use when optimizing slow Reac
+- `react-performance-optimizer` — Optimize React apps for 60fps performance. Implements memoization, virtualization, code splitting, bundle optimization. Use for slow renders
+- `react-performance` — React and Next.js performance optimization patterns adapted from Vercel Engineering's React Best Practices (https://github.com/vercel-labs/a
 - `remotion-best-practices` — Best practices for Remotion
 - `remotion-captions` — Dealing with captions in Remotion
 - `remotion-create` — Creating a new Remotion video
@@ -885,5 +1125,12 @@ Skills currently installed on this box (name — one-line description):
 - `remotion-markup` — Best practices for writing Remotion React Markup
 - `remotion-render` — Best practices for rendering videos
 - `remotion-saas` — Building video apps with Remotion - framework, rendering and Player advice
+- `review-animations` — Reviews animation and motion code against a high craft bar derived from Emil Kowalski's design engineering philosophy. Default to flagging; 
+- `ship-loop` — High-quality ops/ship loop distilled from the Padawan performance pass:
+- `simplify` — Simplify and refine recently modified code for clarity and consistency. Use after writing code to improve readability without changing funct
+- `spar` — Run a Codex-orchestrated, Grok-adversarial Scope·Punch·Award·Realize review-and-fix loop. Use for multi-file implementation, refactoring, PR
+- `tavisi-standup` — Daily operating picture across tavisi-fleet-ops and collateralcore: six-metric
+- `vercel-react-best-practices` — React and Next.js performance optimization guidelines from Vercel Engineering. This skill should be used when writing, reviewing, or refacto
+- `web-design-guidelines` — Review UI code for Web Interface Guidelines compliance. Use when asked to "review my UI", "check accessibility", "audit design", "review UX"
 
 <!-- SKILLS:END -->
