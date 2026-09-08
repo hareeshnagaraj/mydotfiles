@@ -1,0 +1,46 @@
+#!/bin/zsh
+# snip — store misc text under an alias. Files live in ~/.snip/<alias>.
+set -euo pipefail
+dir="$HOME/.snip"
+mkdir -p "$dir"
+
+usage() {
+  cat <<'EOF'
+usage:
+  snip <alias>              print it (and copy to clipboard if on a tty)
+  snip <alias> <text...>    store text under alias (overwrites)
+  echo x | snip <alias> -   store stdin under alias
+  snip ls                   list aliases
+  snip rm <alias>           delete
+EOF
+  exit 1
+}
+
+[[ $# -eq 0 ]] && usage
+
+case "$1" in
+  ls|list)
+    ls -1 "$dir" 2>/dev/null
+    ;;
+  rm)
+    [[ $# -eq 2 ]] || usage
+    rm "$dir/$2"
+    ;;
+  -h|--help)
+    usage
+    ;;
+  *)
+    name="$1"; shift
+    if [[ $# -eq 0 ]]; then
+      [[ -f "$dir/$name" ]] || { echo "snip: no such alias: $name" >&2; exit 1; }
+      cat "$dir/$name"
+      if [[ -t 1 ]] && command -v pbcopy >/dev/null; then
+        tr -d '\n' < "$dir/$name" | pbcopy
+      fi
+    elif [[ $# -eq 1 && "$1" == "-" ]]; then
+      cat > "$dir/$name"
+    else
+      printf '%s\n' "$*" > "$dir/$name"
+    fi
+    ;;
+esac

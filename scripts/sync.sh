@@ -85,6 +85,13 @@ copy "$HOME/.config/yazi/keymap.toml"        "yazi/keymap.toml"
 copy "$HOME/.config/yazi/package.toml"       "yazi/package.toml"
 copy "$HOME/.config/yazi/theme.toml"         "yazi/theme.toml"
 
+# CLI tools from ~/.local/bin. After `make install` these are links into the
+# repo and get skipped; before it, this is how they come home.
+copy "$HOME/.local/bin/tmux-sync"            "bin/tmux-sync"
+copy "$HOME/.local/bin/snip"                 "bin/snip"
+copy "$HOME/.local/bin/snapview"             "bin/snapview"
+chmod +x "$D"/bin/* 2>/dev/null || true
+
 # NOTE: ~/.zshrc and ~/.gitconfig are NOT synced raw — they hold secrets/identity.
 #       Curate dotfiles/zshrc.snippets and dotfiles/gitconfig.template by hand.
 

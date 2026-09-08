@@ -78,3 +78,28 @@ eval "$(zoxide init zsh)"
 # Claude plan files. Newest first. `i` to read — don't click the TUI path (that is VS Code).
 alias plans='y ~/.claude/plans'
 
+# --- the ~/.local/bin tools (linked by `make install`; see dotfiles/bin/) ---
+# These need ~/.local/bin on PATH — the export above already does that.
+#
+# snapview — fzf-pick screenshots, ENTER copies the real paths to the clipboard.
+#   Finds the screenshot dir itself via macOS `screencapture location`.
+#     snapview            pick from every screenshot, newest first
+#     snapview 20         only the 20 newest
+#     snapview -c         capture (interactive crosshair) first, then pick
+#     snapview -1         no picker — just copy the newest path
+#     snapview --heic     include HEIC/HEIF (converted to a cached PNG)
+#     snapview --dir DIR  search somewhere else (or set $SNAPVIEW_DIR)
+#   In fzf: TAB multi-select · CTRL-O preview in Preview.app · ENTER copy · ESC bail
+#   Also bound to tmux `prefix + S` as a popup over the current pane.
+#   `pbynk` is an alias symlink to the same script.
+#
+# snip — stash misc text under an alias, in ~/.snip/<alias>.
+#     snip mykey "some text"    store (overwrites)
+#     pbpaste | snip mykey -    store stdin
+#     snip mykey                print it, and copy to clipboard when on a tty
+#     snip ls / snip rm mykey   list / delete
+#
+# tmux-sync — toggle synchronize-panes from OUTSIDE tmux (agents can call it).
+#     tmux-sync on | off | toggle
+#   Same thing as tmux `prefix + e`; the status bar shows a yellow SYNC while on.
+

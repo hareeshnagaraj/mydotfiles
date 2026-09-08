@@ -35,6 +35,14 @@ link "$D/yazi/keymap.toml"        "$HOME/.config/yazi/keymap.toml"
 link "$D/yazi/package.toml"       "$HOME/.config/yazi/package.toml"
 link "$D/yazi/theme.toml"         "$HOME/.config/yazi/theme.toml"
 
+# CLI tools -> ~/.local/bin (make sure that dir is on your PATH).
+# pbynk is kept as an alias symlink to snapview: same script, the old name.
+BIN="$HOME/.local/bin"
+link "$D/bin/tmux-sync"           "$BIN/tmux-sync"
+link "$D/bin/snip"                "$BIN/snip"
+link "$D/bin/snapview"            "$BIN/snapview"
+link "$D/bin/snapview"            "$BIN/pbynk"
+
 echo
 echo "Linked the safe dotfiles. Manual steps (identity/secrets — intentionally not automated):"
 echo "  • ~/.gitconfig     : cp $D/gitconfig.template ~/.gitconfig  then fill in name/email"
@@ -43,3 +51,4 @@ echo "  • Caps Lock → Control (macOS System Settings → Keyboard → Modifi
 echo "  • tmux plugins     : git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm ; open tmux, prefix + I"
 echo "  • yazi packages    : ya pkg add yazi-rs/plugins:piper kmlupreti/ayu-dark"
 echo "  • optional githooks: make githooks   # flags AI authorship trailers in commit messages"
+echo "  • PATH             : ~/.local/bin must be on your PATH for tmux-sync / snip / snapview"

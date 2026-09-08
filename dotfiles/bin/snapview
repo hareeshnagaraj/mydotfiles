@@ -1,0 +1,173 @@
+#!/usr/bin/env bash
+# snapview — fzf-pick screenshots and copy their paths to the clipboard.
+# The point: paste a real screenshot path into an agent prompt without leaving
+# the terminal. ENTER copies paths, CTRL-O previews, TAB multi-selects.
+#
+# Directory resolution (first hit wins):
+#   --dir DIR  →  $SNAPVIEW_DIR  →  macOS screenshot location  →  ~/Desktop
+# Also answers to `pbynk` (alias symlink) — same script, same behavior.
+set -euo pipefail
+
+version="0.2.0"
+
+# macOS stores this with a literal ~ ("~/Development/Screenshots"), so expand it.
+screenshot_location() {
+  local location
+  location=$(defaults read com.apple.screencapture location 2>/dev/null || true)
+  location="${location/#\~/$HOME}"
+  if [[ -n "$location" && -d "$location" ]]; then
+    printf '%s\n' "$location"
+  else
+    printf '%s\n' "$HOME/Desktop"
+  fi
+}
+
+directory="${SNAPVIEW_DIR:-$(screenshot_location)}"
+include_heic=false
+capture=false
+latest_only=false
+self_check=false
+limit=""
+
+usage() {
+  cat <<'EOF'
+Usage: snapview [options] [count]
+
+Pick screenshots from a local directory and copy their paths to the clipboard.
+
+Options:
+  --dir DIR   search DIR instead of $SNAPVIEW_DIR or the macOS screenshot location
+  -c          capture a screenshot (interactive) before opening the picker
+  -1          skip the picker, copy the most recent screenshot path
+  --heic      include HEIC/HEIF (converted to a cached PNG so Preview can open them)
+  --check     verify the setup against the configured directory
+  -h, --help  show this help
+  --version   print the version
+EOF
+}
+
+require_command() {
+  command -v "$1" >/dev/null || {
+    printf 'snapview: %s is required\n' "$1" >&2
+    exit 1
+  }
+}
+
+while (($#)); do
+  case "$1" in
+    --dir)
+      (($# >= 2)) || { printf 'snapview: --dir needs a directory\n' >&2; exit 2; }
+      directory=$2
+      shift
+      ;;
+    -c) capture=true ;;
+    -1) latest_only=true ;;
+    --heic) include_heic=true ;;
+    --check) self_check=true ;;
+    --version) printf '%s\n' "$version"; exit 0 ;;
+    -h|--help) usage; exit 0 ;;
+    [0-9]|[1-9][0-9]*) limit=$1 ;;
+    *) usage >&2; exit 2 ;;
+  esac
+  shift
+done
+
+for required_command in find pbcopy stat; do
+  require_command "$required_command"
+done
+"$capture" && require_command screencapture
+if "$include_heic"; then
+  require_command shasum
+  require_command sips
+fi
+if ! "$latest_only" || "$self_check"; then
+  require_command fzf
+  require_command open
+fi
+
+[[ -d "$directory" ]] || {
+  printf 'snapview: missing directory %s\n' "$directory" >&2
+  exit 1
+}
+
+if "$capture"; then
+  target="$directory/Screenshot $(date '+%Y-%m-%d at %H.%M.%S').png"
+  screencapture -i "$target" || exit $?
+fi
+
+find_images() {
+  if "$include_heic"; then
+    find "$directory" -maxdepth 1 -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' -o -iname '*.heic' -o -iname '*.heif' \) -print0
+  else
+    find "$directory" -maxdepth 1 -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \) -print0
+  fi
+}
+
+convert_heic() {
+  local source=$1 converted
+  converted="${TMPDIR:-/tmp}/snapview/$(printf '%s' "$source" | shasum | cut -d ' ' -f 1).png"
+  mkdir -p "${converted%/*}"
+  if [[ ! -f "$converted" || "$source" -nt "$converted" ]]; then
+    sips -s format png "$source" --out "$converted" >/dev/null
+  fi
+  printf '%s\n' "$converted"
+}
+
+image_file=$(mktemp "${TMPDIR:-/tmp}/snapview.images.XXXXXX")
+list_file=$(mktemp "${TMPDIR:-/tmp}/snapview.list.XXXXXX")
+trap 'rm -f "$image_file" "$list_file" "$list_file.limited"' EXIT
+
+find_images > "$image_file"
+[[ -s "$image_file" ]] || {
+  printf 'snapview: no images found in %s\n' "$directory" >&2
+  exit 1
+}
+
+# Newest first. stat -f '%m %N' then numeric-sort on the mtime column.
+emit_entries() {
+  if "$include_heic"; then
+    xargs -0 stat -f '%m %N' < "$image_file" | LC_ALL=C sort -rn -k1,1 |
+      while IFS=' ' read -r _ source; do
+        case "$source" in
+          *.[Hh][Ee][Ii][Cc]|*.[Hh][Ee][Ii][Ff]) source=$(convert_heic "$source") ;;
+        esac
+        printf '%s\n' "$source"
+      done
+  else
+    xargs -0 stat -f '%m %N' < "$image_file" | LC_ALL=C sort -rn -k1,1 | sed -E 's/^[0-9]+ //'
+  fi
+}
+
+if "$self_check"; then
+  [[ -n "$(emit_entries | sed -n '1p')" ]] || exit 1
+  printf 'snapview: checks passed (%s)\n' "$directory"
+  exit 0
+fi
+
+# Column 1 = full path (what gets copied), column 2 = short label (what fzf shows).
+emit_entries |
+  awk '{ label = $0; sub(/^.*\/Screenshot[[:space:]]*/, "", label); if (label == $0) sub(/^.*\//, "", label); print $0 "\t" label }' > "$list_file"
+
+if [[ -n "$limit" ]]; then
+  head -n "$limit" "$list_file" > "$list_file.limited"
+  mv "$list_file.limited" "$list_file"
+fi
+
+[[ -s "$list_file" ]] || {
+  printf 'snapview: no images found in %s\n' "$directory" >&2
+  exit 1
+}
+
+if "$latest_only"; then
+  IFS=$'\t' read -r latest _ < "$list_file"
+  printf '%s' "$latest" | pbcopy
+  printf 'Copied the most recent path to the clipboard\n'
+  exit 0
+fi
+
+selected=$(fzf --multi --delimiter=$'\t' --with-nth=2 --nth=2 --marker='✓' --header='CTRL-O open in Preview  •  TAB select / deselect  •  ENTER copy paths  •  ESC cancel' --bind='ctrl-o:execute-silent(open -a Preview {1}),tab:toggle+down,shift-tab:toggle+up' < "$list_file") || exit 0
+[[ -n "$selected" ]] || exit 0
+
+paths=$(printf '%s\n' "$selected" | cut -f1)
+printf '%s' "$paths" | pbcopy
+printf 'Copied %s path(s) to the clipboard\n' "$(printf '%s\n' "$paths" | wc -l | tr -d ' ')"
