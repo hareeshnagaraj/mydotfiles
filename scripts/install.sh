@@ -43,6 +43,11 @@ link "$D/bin/snip"                "$BIN/snip"
 link "$D/bin/snapview"            "$BIN/snapview"
 link "$D/bin/snapview"            "$BIN/pbynk"
 
+# Claude Code: a status line (model + quota) and a hook that asks before building on Fable.
+# The scripts are linked; the settings that point at them are merged by hand (see below).
+link "$D/claude/statusline.py"              "$HOME/.claude/statusline.py"
+link "$D/claude/hooks/fable-build-guard.py" "$HOME/.claude/hooks/fable-build-guard.py"
+
 echo
 echo "Linked the safe dotfiles. Manual steps (identity/secrets — intentionally not automated):"
 echo "  • ~/.gitconfig     : cp $D/gitconfig.template ~/.gitconfig  then fill in name/email"
@@ -52,3 +57,4 @@ echo "  • tmux plugins     : git clone https://github.com/tmux-plugins/tpm ~/.
 echo "  • yazi packages    : ya pkg add yazi-rs/plugins:piper kmlupreti/ayu-dark"
 echo "  • optional githooks: make githooks   # flags AI authorship trailers in commit messages"
 echo "  • PATH             : ~/.local/bin must be on your PATH for tmux-sync / snip / snapview"
+echo "  • Claude Code      : merge \"hooks\" + \"statusLine\" from $D/claude/settings.snippet.json into ~/.claude/settings.json"

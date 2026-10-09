@@ -1,0 +1,17 @@
+{
+  "_readme": "Merge these two keys into ~/.claude/settings.json by hand (it holds your permissions and other private settings, so it is never linked). install.sh links the two scripts into ~/.claude.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|NotebookEdit|Bash",
+        "hooks": [{ "type": "command", "command": "python3 -I \"$HOME/.claude/hooks/fable-build-guard.py\"", "timeout": 5 }]
+      }
+    ],
+    "PostModelSwitch": [
+      {
+        "hooks": [{ "type": "command", "command": "python3 -I \"$HOME/.claude/hooks/fable-build-guard.py\"", "timeout": 5 }]
+      }
+    ]
+  },
+  "statusLine": { "type": "command", "command": "python3 -I \"$HOME/.claude/statusline.py\"" }
+}

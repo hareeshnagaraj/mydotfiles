@@ -37,6 +37,7 @@ mydotfiles/
 │   ├── config-tmux/git-status.sh
 │   ├── ghostty/             (terminal config + ayu-dark theme)
 │   ├── yazi/                (file tree + glow + ayu-dark flavor matching Ghostty)
+│   ├── claude/              (Claude Code status line + Fable build guard; settings.snippet.json)
 │   └── bin/                 (CLI tools linked into ~/.local/bin)
 │       ├── tmux-sync            (toggle synchronize-panes from outside tmux)
 │       ├── snip                 (stash text under an alias, in ~/.snip/)
@@ -686,6 +687,18 @@ In `~/.claude/settings.json`:
 - **Bash allowlist** for low-risk git/gh/ls so you aren't prompted constantly (generate
   your own from transcripts; don't copy a foreign allowlist blindly)
 - **grok-build plugin** enabled when you want Claude → Grok bridge skills
+- **Status line: model + quota** — `dotfiles/claude/statusline.py` shows the model (Fable
+  in yellow) and how much of the 5-hour and 7-day quota is used. Runs locally; costs no tokens.
+- **Fable plans, Opus builds** — `dotfiles/claude/hooks/fable-build-guard.py`. Plan mode is
+  read-only, so the first edit or shell command after a plan is approved is the build
+  starting; if the session is still on Fable then, Claude Code asks once: say no,
+  `/model opus`, continue. Re-arms on the next plan. ~45 ms per tool call, no tokens unless
+  it fires. Hooks aren't told the model and the transcript lags a turn, so the status line
+  and a `PostModelSwitch` hook record the live model per session in `$TMPDIR/fable-guard/`.
+  Why not `opusplan`: it only switches between whatever `opus` and `sonnet` point to, and
+  remapping those to Fable/Opus changes them everywhere (subagents included).
+  `make install` links both scripts; merge `dotfiles/claude/settings.snippet.json` into
+  `~/.claude/settings.json` by hand.
 
 ### Grok settings worth knowing
 

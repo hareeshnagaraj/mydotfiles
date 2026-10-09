@@ -41,6 +41,8 @@ copy "$HOME/.vimrc"                     "vimrc"
 copy "$HOME/.gitignore_global"          "gitignore_global"
 copy "$HOME/.config/tmux/git-status.sh" "config-tmux/git-status.sh"
 chmod +x "$D/config-tmux/git-status.sh" 2>/dev/null || true
+copy "$HOME/.claude/statusline.py"              "claude/statusline.py"
+copy "$HOME/.claude/hooks/fable-build-guard.py" "claude/hooks/fable-build-guard.py"
 
 # Ghostty: prefer macOS Application Support, fall back to XDG. Strip template
 # banners (comments/blanks) so the repo keeps only real settings.
