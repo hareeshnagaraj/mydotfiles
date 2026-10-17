@@ -42,6 +42,7 @@ link "$D/bin/tmux-sync"           "$BIN/tmux-sync"
 link "$D/bin/snip"                "$BIN/snip"
 link "$D/bin/snapview"            "$BIN/snapview"
 link "$D/bin/snapview"            "$BIN/pbynk"
+link "$D/bin/dev-tidy"            "$BIN/dev-tidy"
 
 # Claude Code: a status line (model + quota) and a hook that asks before building on Fable.
 # The scripts are linked; the settings that point at them are merged by hand (see below).
@@ -56,5 +57,6 @@ echo "  • Caps Lock → Control (macOS System Settings → Keyboard → Modifi
 echo "  • tmux plugins     : git clone https://github.com/tmux-plugins/tpm ~/.tmux/plugins/tpm ; open tmux, prefix + I"
 echo "  • yazi packages    : ya pkg add yazi-rs/plugins:piper kmlupreti/ayu-dark"
 echo "  • optional githooks: make githooks   # flags AI authorship trailers in commit messages"
+echo "  • ~/.ssh/config   : append $D/ssh/config.snippet, fill in the Tailscale names"
 echo "  • PATH             : ~/.local/bin must be on your PATH for tmux-sync / snip / snapview"
 echo "  • Claude Code      : merge \"hooks\" + \"statusLine\" from $D/claude/settings.snippet.json into ~/.claude/settings.json"

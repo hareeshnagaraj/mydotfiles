@@ -1,6 +1,15 @@
 SHELL := /bin/bash
 
-.PHONY: install sync scan hook sync-install sync-uninstall githooks githooks-sweep-install
+.PHONY: brew test tidy-install install sync scan hook sync-install sync-uninstall githooks githooks-sweep-install
+
+brew:               ## install the CLI toolbox from Brewfile
+	brew bundle --file Brewfile
+
+test:               ## run the dev-tidy self-check
+	./scripts/test-dev-tidy.sh
+
+tidy-install:       ## weekly notification when ~/Development or ~/Downloads drifts
+	./launchd/install-tidy.sh
 
 install:            ## symlink dotfiles into ~ (backs up existing)
 	./scripts/install.sh

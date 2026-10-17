@@ -38,10 +38,12 @@ mydotfiles/
 │   ├── ghostty/             (terminal config + ayu-dark theme)
 │   ├── yazi/                (file tree + glow + ayu-dark flavor matching Ghostty)
 │   ├── claude/              (Claude Code status line + Fable build guard; settings.snippet.json)
+│   ├── ssh/config.snippet   (Tailscale host aliases for the other Macs)
 │   └── bin/                 (CLI tools linked into ~/.local/bin)
 │       ├── tmux-sync            (toggle synchronize-panes from outside tmux)
 │       ├── snip                 (stash text under an alias, in ~/.snip/)
-│       └── snapview             (fzf-pick screenshots → paths on the clipboard)
+│       ├── snapview             (fzf-pick screenshots → paths on the clipboard)
+│       └── dev-tidy             (weekly check that ~/Development and ~/Downloads stay clean)
 ├── docs/
 │   └── tmux-cheatsheet.md   ← every keybinding in this setup, shareable
 ├── scripts/
@@ -51,7 +53,8 @@ mydotfiles/
 │   └── pre-commit       ← blocks any commit that would leak a secret
 ├── githooks/            ← global AI-attribution guard (commit-msg warn/block)
 ├── launchd/             ← optional weekly auto-sync agent (never pushes)
-└── Makefile             ← make install | sync | scan | hook | githooks | sync-install
+├── Brewfile             ← the CLI toolbox, deliberately small (make brew)
+└── Makefile             ← make brew | install | test | tidy-install | sync | scan | hook | githooks
 ```
 
 ## Use it
@@ -68,7 +71,7 @@ make sync-install  # optional: weekly launchd agent that runs sync (stages only,
 redactor, regenerates the "skills on this box" appendix (Claude + Codex + Grok + Cursor +
 agents), hard-scans for leaks, and stages the diff — commit + push stay manual, always.
 
-## The three CLI tools
+## The CLI tools
 
 `make install` links these into `~/.local/bin` (make sure that's on your PATH).
 Small, single-purpose, no dependencies beyond `fzf` and what macOS already ships.
@@ -147,6 +150,45 @@ tmux.
 
 ---
 
+## Second machine — one profile, dev that stays contained
+
+One macOS user account for everything (music, video, dev). A separate dev profile
+sounds clean and never gets used, because switching costs too much. What keeps the
+disk clean instead is a few hard rules and a weekly check that says when they slip.
+
+**The rules**
+
+- `~/Development/<repo>` — exactly one clone per remote. Worktrees go *inside* the
+  repo at `<repo>/.worktrees/<branch>` (globally gitignored), never as siblings.
+- `~/Development/_scratch/` — anything throwaway. Older than 30 days is fair game.
+- Nothing else lives in `~/Development`: no zips, no data dumps, no backups.
+- `~/Downloads` is an inbox. Over 10 GB means it's become a warehouse — archive it to
+  an external drive and empty it.
+- Never Migration Assistant, never copy `~/Development` or `~/Downloads` across.
+  Repos come back by `git clone`, configs by `make install`.
+- Databases, VMs, Docker and filesystem-heavy builds live on the always-on machines;
+  reach them with `ssh m1` (snippet in `dotfiles/ssh/config.snippet`).
+
+**`dev-tidy`** — the check. Lists every folder in `~/Development` that isn't a repo,
+every repo with dirty / unpushed / stashed work, stale `_scratch` entries, and an
+oversized `~/Downloads`. Exit 1 if anything's off. `--purge` deletes `_scratch`
+entries older than 30 days; nothing else is ever deleted. `make tidy-install` runs it
+every Monday and posts a notification only when something has drifted.
+
+**Bootstrap, in order**
+
+```bash
+ssh-keygen -t ed25519 && gh auth login            # gh uploads the key
+git clone git@github.com:hareeshnagaraj/mydotfiles ~/Development/mydotfiles
+cd ~/Development/mydotfiles
+make brew install hook githooks tidy-install      # toolbox, links, hooks, weekly check
+sudo brew services start tailscale && sudo tailscale up
+# Claude Code / Codex / Grok from their own installers, then merge the Claude snippet
+dev-tidy                                          # expect: clean
+```
+
+---
+
 ## FOR THE ASSISTANT READING THIS (Claude Code / Codex / Cursor / whatever)
 
 You are helping a human replicate someone else's Mac setup. **Do not dump everything
@@ -190,7 +232,8 @@ the Ghostty section below. iTerm2 or Terminal.app work too — you just need the
 ## Homebrew stack — the CLI toolbox
 
 **What & why:** the command-line tools I reach for daily. Install the ones you want;
-none are mandatory for the configs below except where noted.
+none are mandatory for the configs below except where noted. `make brew` installs the
+curated set in `Brewfile` in one go.
 
 ```bash
 # Core dev + shell quality-of-life
