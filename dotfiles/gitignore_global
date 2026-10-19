@@ -3,3 +3,6 @@ CLAUDE.local.md
 .claude.local/
 
 **/.claude/settings.local.json
+
+# worktrees live inside their repo: <repo>/.worktrees/<branch>
+.worktrees/

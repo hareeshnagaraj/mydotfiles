@@ -1,0 +1,11 @@
+# Reach the other machines over Tailscale. Append to ~/.ssh/config.
+# HostNames are MagicDNS short names — read yours off `tailscale status`.
+# On the target Mac: System Settings → General → Sharing → Remote Login → on.
+
+Host m1
+  HostName <<M1_TAILSCALE_NAME>>
+  ForwardAgent no
+
+Host m5
+  HostName <<M5_TAILSCALE_NAME>>
+  ForwardAgent no

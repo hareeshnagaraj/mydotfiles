@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# dev-tidy — what is drifting on this Mac. Report only, unless you pass --purge.
+#
+# The one rule it keeps honest: every folder in ~/Development is a git repo with
+# nothing dirty, unpushed or stashed — or it lives in ~/Development/_scratch,
+# which is disposable after 30 days. Plus the two places a Mac silently fills up.
+#
+#   dev-tidy            print what's off; exit 1 if anything is
+#   dev-tidy --purge    also delete _scratch entries older than 30 days
+#   dev-tidy --notify   macOS notification instead of output (for the weekly agent)
+set -uo pipefail
+DEV="${DEV_ROOT:-$HOME/Development}"
+SCRATCH="$DEV/_scratch"
+DL_LIMIT_GB="${DEV_TIDY_DOWNLOADS_GB:-10}"
+purge=0 notify=0
+for a in "$@"; do case "$a" in
+  --purge) purge=1 ;; --notify) notify=1 ;;
+  *) echo "usage: dev-tidy [--purge] [--notify]" >&2; exit 2 ;;
+esac; done
+
+issues=()
+for d in "$DEV"/*/; do
+  d="${d%/}"
+  [ "$d" = "$SCRATCH" ] && continue
+  if [ ! -e "$d/.git" ]; then issues+=("not a repo       $d"); continue; fi
+  dirty=$(git -C "$d" status --porcelain 2>/dev/null | wc -l | tr -d ' ')
+  ahead=$(git -C "$d" log --branches --not --remotes --oneline 2>/dev/null | wc -l | tr -d ' ')
+  stash=$(git -C "$d" stash list 2>/dev/null | wc -l | tr -d ' ')
+  [ "$dirty$ahead$stash" = 000 ] || issues+=("dirty=$dirty unpushed=$ahead stash=$stash  $d")
+done
+
+# ponytail: age = the entry's own mtime, not its newest file; fine for throwaway dirs.
+if [ -d "$SCRATCH" ]; then
+  while IFS= read -r old; do
+    if [ "$purge" = 1 ]; then rm -rf -- "$old" && echo "purged $old"
+    else issues+=("scratch >30 days $old"); fi
+  done < <(find "$SCRATCH" -mindepth 1 -maxdepth 1 -mtime +30)
+fi
+
+dl_kb=$(du -sk "$HOME/Downloads" 2>/dev/null | cut -f1)
+[ "${dl_kb:-0}" -gt $((DL_LIMIT_GB * 1024 * 1024)) ] &&
+  issues+=("Downloads is $((dl_kb / 1024 / 1024)) GB (limit $DL_LIMIT_GB) — archive or empty it")
+
+n=${#issues[@]}
+if [ "$notify" = 1 ]; then
+  if [ "$n" -gt 0 ]; then
+    osascript -e "display notification \"$n things drifting — run dev-tidy\" with title \"dev-tidy\""
+  fi
+else
+  if [ "$n" -gt 0 ]; then printf '%s\n' "${issues[@]}"; else echo "clean"; fi
+  echo "caches: $(du -sh "$HOME/Library/Caches" 2>/dev/null | cut -f1)"
+fi
+[ "$n" -eq 0 ]
