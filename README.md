@@ -665,9 +665,9 @@ A **skill** is markdown with a trigger + procedure. Most leverage lives here.
 **Reach-for skills (illustrative — full live list is the appendix below, auto-synced):**
 
 *Orchestration:* `arbitrage`, `codex-implement`, `conserve-claude`, `factory`, `goalbuddy`, Grok `spar`, Grok `cursor`  
-*Quality:* `thermo-nuclear-code-quality-review`, `tavisi-audit`, `deploy-preflight`, Grok `ponytail` / `ponytail-review`  
+*Quality:* `thermo-nuclear-code-quality-review`, `deploy-preflight`, Grok `ponytail` / `ponytail-review`  
 *Design:* `design-system-forge`, `extract-design`, `taste-loop-sprint`, Grok `better-ui` / `first-share`  
-*Memory / ops:* `gbrain-recall`, `fleet-drive`
+*Memory / ops:* `gbrain-recall`
 
 **Fresh machine:**
 
@@ -798,9 +798,7 @@ Skills currently installed on this box (name — one-line description):
 - `emil-design-eng` — This skill encodes Emil Kowalski's philosophy on UI polish, component design, animation decisions, and the invisible details that make softw
 - `explain-diff-html` — Use when the user asks for a rich explanation of a code change, diff, branch, or PR. Produces HTML output.
 - `extract-design` — Extract the full design language from any website URL. Produces 8 output files including AI-optimized markdown, visual HTML preview, Tailwin
-- `factory` — Software factory — one prompt ships a vertical slice. Spawns 10 specialized
 - `find-animation-opportunities` — Search a codebase or UI for places that don't animate but should, and reject everything that shouldn't. Read-only; it proposes motion with e
-- `fleet-drive` — Resume the attended fleet-driver seat for the Tavisi autonomous fleet on VM hareesh2. Reads the newest checkpoint, verifies live VM state, a
 - `freeze` — Restrict file edits to a specific directory for the session. (gstack)
 - `frontend-slides` — Create stunning, animation-rich HTML presentations from scratch or by converting PowerPoint files. Use when the user wants to build a presen
 - `gbrain-recall` — How to read from and write to gbrain, the cross-project memory. Use when a gbrain call fails with a lock or 'database is locked' or PGLite e
@@ -828,6 +826,7 @@ Skills currently installed on this box (name — one-line description):
 - `memory-leak-detection` — Detect and fix memory leaks using heap snapshots, memory profiling, and leak
 - `office-hours` — YC Office Hours — two modes. (gstack)
 - `open-gstack-browser` — Launch GStack Browser — AI-controlled Chromium with the sidebar extension baked in.
+- `padawan` — Run the Padawan research method: a question goes through live two-lane
 - `pair-agent` — Pair a remote AI agent with your browser. (gstack)
 - `pdwn-anti-slop` — writing patterns. Activates on any writing task — tweets, emails, articles,
 - `pdwn-approach` — Triggers: /pdwn-approach, pdwn approach, padawan padawan approach.
@@ -898,13 +897,12 @@ Skills currently installed on this box (name — one-line description):
 - `simplify` — Simplify and refine recently modified code for clarity and consistency. Use after writing code to improve readability without changing funct
 - `skillify` — Codify the most recent successful /scrape flow into a permanent browser-skill on disk. (gstack)
 - `spar` — Run a Codex-orchestrated, Grok-adversarial Scope·Punch·Award·Realize review-and-fix loop. Use for multi-file implementation, refactoring, PR
+- `spec-from-context` — Use when messy human context — a call transcript, notes, a ramble — must become a product spec a domain expert will critique. Encodes how a 
 - `spec` — Turn vague intent into a precise, executable spec in five phases. (gstack)
 - `standup` — Hareesh's personal operating picture across everything he runs, not one project:
 - `sync-gbrain` — Keep gbrain current with this repo's code and refresh agent search guidance in CLAUDE.md. Wraps the gstack-gbrain-sync orchestrator with sta
+- `synced`
 - `taste-loop-sprint` — Taste sprint that converges a surface's design through live prototypes and cross-model review, ending with a public link you walk a stakehol
-- `tavisi-audit` — Tavisi audit, implementation-review, maintainability-review, proof-validation, and test-planning workflow for collateralcore changes. Use wh
-- `tavisi-fleet-ops` — Diagnose, explain, repair, and improve Tavisi fleet operations across schedulers, services, locks, queues, workers, reviews, model lanes, op
-- `tavisi-standup` — Daily operating picture across tavisi-fleet-ops and collateralcore: six-metric
 - `teach-session` — Become a wise, patient, ruthlessly effective teacher who makes sure the human
 - `thermo-nuclear-code-quality-review` — Run an extremely strict maintainability review for abstraction quality, giant files, and spaghetti-condition growth. Use for a thermo-nuclea
 - `unfreeze` — Clear the freeze boundary set by /freeze, allowing edits to all directories again. (gstack)
@@ -981,11 +979,6 @@ Skills currently installed on this box (name — one-line description):
 - `ship-loop` — High-quality ops/ship loop distilled from the Padawan performance pass:
 - `smart-contract-audit` — Comprehensive smart contract security audit framework with multi-expert analysis. Use for full audits of Ethereum / EVM Solidity and Vyper, 
 - `spar` — Run a Codex-orchestrated, Grok-adversarial Scope·Punch·Award·Realize review-and-fix loop. Use for multi-file implementation, refactoring, PR
-- `tavisi-audit` — Tavisi-specific audit, implementation-review, maintainability-review, proof-validation, and test-planning workflow for collateralcore change
-- `tavisi-dispatcher-codex` — Run the Tavisi fleet dispatcher from Codex. Codex is primary-eligible — it runs the FULL dispatcher pass when it holds the orchestrator chai
-- `tavisi-fleet-driver` — Drive or monitor the Tavisi fleet as an attended operator. Use only when the user explicitly says to drive or monitor the fleet, asks to tak
-- `tavisi-fleet-ops` — Diagnose, explain, repair, and improve Tavisi fleet operations across schedulers, services, locks, queues, workers, reviews, model lanes, op
-- `tavisi-standup` — Daily operating picture across tavisi-fleet-ops and collateralcore: six-metric
 - `teach-session` — Become a wise, patient, ruthlessly effective teacher for a coding session so the human deeply understands the problem, solution, design deci
 - `thermo-nuclear-code-quality-review` — Run Codex-native extremely strict maintainability audit for current branches, PRs, and local diffs. Use when asked for thermo-nuclear review
 - `thermonuclear-code-quality-review` — Run a Codex-native extremely strict maintainability audit for current branches, PRs, or local diffs. Use when asked for thermonuclear code q
@@ -1001,7 +994,6 @@ Skills currently installed on this box (name — one-line description):
 - `better-ui` — Design engineering principles for making interfaces feel polished. Use when building UI components, reviewing frontend code, implementing an
 - `brainstorm` — Multi-source creative brainstorm for names, mottos, titles, product labels,
 - `brand-site` — Build production-quality brand websites from live URLs, Instagram/screenshots,
-- `brandup-product-lead`
 - `brief-page` — Author paper-style brief HTML pages (Padawan / cr8 vision format): kicker, serif
 - `code-judo-quality-review` — Run a native Codex extremely strict maintainability review for abstraction quality, giant files, spaghetti-condition growth, and dramatic st
 - `cursor` — Headlessly invoke Cursor Agent from Grok for a second opinion, plan, or
@@ -1013,7 +1005,6 @@ Skills currently installed on this box (name — one-line description):
 - `first-share` — Artifact-first stakeholder ship loop: name the one human URL, walk the journey,
 - `foundry-poc` — Generates foundry PoC for smart contracts to scientifically from no special privileges to funds lost. Focused on proof of concept for EVM us
 - `grok-search` — Route web and X (Twitter) research through the local xAI Grok CLI headlessly.
-- `hermes-runtime-research` — Run a Hermes ecosystem research loop against the Tavisi hermes-aleph runtime
 - `improve-animations` — Survey a codebase's animation and motion code as a senior motion advisor, then produce a prioritized audit and self-contained implementation
 - `linear-board-sweep` — Periodic Linear board review and optimization for fleet operators: snapshot
 - `memory-leak-audit` — Audit code for memory leaks and disposable issues. Use when reviewing event listeners, DOM handlers, lifecycle callbacks, or fixing leak rep
@@ -1083,9 +1074,6 @@ Skills currently installed on this box (name — one-line description):
 - `smart-contract-audit` — Comprehensive smart contract security audit framework with multi-expert analysis. Use for full audits of Ethereum / EVM Solidity and Vyper, 
 - `spar` — Run a Codex-orchestrated, Grok-adversarial Scope·Punch·Award·Realize review-and-fix loop. Use for multi-file implementation, refactoring, PR
 - `standup` — Hareesh's personal operating picture across everything he runs, not one project:
-- `tavisi-audit` — Tavisi-specific audit, implementation-review, maintainability-review, proof-validation, and test-planning workflow for collateralcore change
-- `tavisi-design` — Use this skill to generate well-branded interfaces and assets for Tavisi, either for production or throwaway prototypes/mocks/etc. Contains 
-- `tavisi-standup` — Daily operating picture: Hareesh-owned lanes as dense markdown with numbers
 - `thermo-nuclear-code-quality-review` — Run Codex-native extremely strict maintainability audit for current branches, PRs, and local diffs. Use when asked for thermo-nuclear review
 - `tiny-auditor` — Audit codebase to uncover critical issues explicitly and certainly leading to loss of funds without false positives
 - `vercel-react-best-practices` — React and Next.js performance optimization guidelines from Vercel Engineering. This skill should be used when writing, reviewing, or refacto
@@ -1142,7 +1130,6 @@ Skills currently installed on this box (name — one-line description):
 - `ship-loop` — High-quality ops/ship loop distilled from the Padawan performance pass:
 - `simplify` — Simplify and refine recently modified code for clarity and consistency. Use after writing code to improve readability without changing funct
 - `spar` — Run a Codex-orchestrated, Grok-adversarial Scope·Punch·Award·Realize review-and-fix loop. Use for multi-file implementation, refactoring, PR
-- `tavisi-standup` — Daily operating picture across tavisi-fleet-ops and collateralcore: six-metric
 - `vercel-react-best-practices` — React and Next.js performance optimization guidelines from Vercel Engineering. This skill should be used when writing, reviewing, or refacto
 - `web-design-guidelines` — Review UI code for Web Interface Guidelines compliance. Use when asked to "review my UI", "check accessibility", "audit design", "review UX"
 
